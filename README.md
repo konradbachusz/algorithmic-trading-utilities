@@ -72,9 +72,9 @@ git+https://github.com/your-username/algorithmic-trading-utilities.git
 
 ```python
 # Import specific modules
-from algorithmic_trading_utilities.src.portfolio_ops import calculate_performance_metrics
-from algorithmic_trading_utilities.src.yfinance_ops import get_stock_gainers_table
-from algorithmic_trading_utilities.src.positions import close_positions_below_threshold
+from algorithmic_trading_utilities.brokers.alpaca.portfolio_ops import calculate_performance_metrics
+from algorithmic_trading_utilities.data.yahoo_finance import get_stock_gainers_table
+from algorithmic_trading_utilities.brokers.alpaca.positions import close_positions_below_threshold
 
 # Use the utilities in your trading strategy
 metrics = calculate_performance_metrics()
@@ -84,7 +84,7 @@ gainers = get_stock_gainers_table()
 ### Portfolio Performance Analysis
 
 ```python
-from src.portfolio_ops import calculate_performance_metrics, get_portfolio_and_benchmark_returns
+from algorithmic_trading_utilities.brokers.alpaca.portfolio_ops import calculate_performance_metrics, get_portfolio_and_benchmark_returns
 
 # Get comprehensive performance metrics
 metrics = calculate_performance_metrics()
@@ -100,7 +100,7 @@ print(comparison_df.tail())
 ### Yahoo Finance Market Screening
 
 ```python
-from src.yfinance_ops import get_stock_gainers_table
+from algorithmic_trading_utilities.data.yahoo_finance import get_stock_gainers_table
 
 # Get today's top large-cap gainers
 gainers_df = get_stock_gainers_table()
@@ -116,8 +116,8 @@ print(gainers_df.head())
 ### Risk Management
 
 ```python
-from src.stop_loss_ops import place_trailing_stop_losses_funct
-from src.positions import close_positions_below_threshold
+from algorithmic_trading_utilities.brokers.alpaca.stop_loss_ops import place_trailing_stop_losses_funct
+from algorithmic_trading_utilities.brokers.alpaca.positions import close_positions_below_threshold
 
 # Place trailing stop losses for all positions
 stop_losses_placed = place_trailing_stop_losses_funct(threshold=0.1)  # 10%
@@ -126,40 +126,78 @@ stop_losses_placed = place_trailing_stop_losses_funct(threshold=0.1)  # 10%
 positions_closed = close_positions_below_threshold(threshold=0.05)
 ```
 
+## Library Structure
+
+The library is organized into distinct modules for clean separation of concerns:
+
+### Broker Integrations (`algorithmic_trading_utilities.brokers`)
+
+#### Alpaca (`algorithmic_trading_utilities.brokers.alpaca`)
+- **`client.py`** - API client configuration and setup
+- **`orders.py`** - Order placement, cancellation, and management
+- **`positions.py`** - Position tracking and management
+- **`portfolio_ops.py`** - Portfolio analytics and performance metrics
+- **`stop_loss_ops.py`** - Stop loss and trailing stop management
+- **`data.py`** - Historical and real-time market data
+
+#### Future Broker Support
+- **`coinbase`** - Cryptocurrency trading via Coinbase (planned)
+- **`kraken`** - Multi-asset trading via Kraken (planned)
+
+### Data Providers (`algorithmic_trading_utilities.data`)
+- **`yahoo_finance.py`** - 300+ market screeners and data feeds
+
+### Common Utilities (`algorithmic_trading_utilities.common`)
+- **`quantitative_tools.py`** - Statistical analysis and correlation tools
+- **`email_ops.py`** - Email notification system
+- **`visualization.py`** - Plotting and charting utilities
+
 ## Core Modules
 
-### Position Management (`positions.py`)
+### Alpaca Integration (`algorithmic_trading_utilities.brokers.alpaca`)
+
+#### Position Management (`positions.py`)
 - Track open positions and P&L
 - Automated position closure based on loss thresholds
 - Integration with trailing stop loss orders
 
-### Order Management (`orders.py`)
+#### Order Management (`orders.py`)
 - Place market, limit, and trailing stop orders
 - Cancel orders with retry logic and rate limiting
 - Monitor order status and execution
 
-### Portfolio Analytics (`portfolio_ops.py`)
+#### Portfolio Analytics (`portfolio_ops.py`)
 - Calculate Sharpe ratio, Sortino ratio, alpha, beta
 - Track drawdown and cumulative returns
 - Benchmark comparison against S&P 500
 
-### Data Operations (`get_data.py`, `yfinance_ops.py`)
+#### Data Operations (`data.py`)
 - Historical price data from Alpaca
-- Real-time market screeners from Yahoo Finance
+- Real-time market data feeds
 - Asset filtering and validation
+
+### Yahoo Finance Integration (`algorithmic_trading_utilities.data.yahoo_finance`)
+- Access to 300+ market screeners
+- Real-time market data
+- Sector and geographic filtering
+
+### Common Utilities (`algorithmic_trading_utilities.common`)
+- Broker-agnostic quantitative analysis tools
+- Email notification system
+- Visualization and plotting utilities
 
 ## Configuration
 
-Key parameters in `src/config.py`:
+Key parameters in `algorithmic_trading_utilities.brokers.alpaca.client.py`:
 
 ```python
 # Risk management
 loss_threshold = 0.05  # 5% stop loss
 trailing_stop_loss_threshold = 0.1  # 10% trailing stop
 
-# Position sizing
-portfolio_size = 100000
-risk_per_trade = 0.01  # 1% risk per trade
+# API configuration (set via environment variables)
+PAPER_KEY = "your_alpaca_paper_api_key"
+PAPER_SECRET = "your_alpaca_paper_secret_key"
 ```
 
 ## Testing
