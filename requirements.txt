@@ -1,0 +1,14 @@
+alpaca-py==0.24.0
+pandas==2.0.3
+numpy==1.24.4
+yfinance==0.1.66
+pytest==8.2.2
+pytest-mock==3.3.1
+black==24.4.2
+flake8==7.1.0
+trendet==0.7
+matplotlib==3.7.5
+yahooquery==2.3.7
+lxml==4.9.3
+alpaca-trade-api==3.2.0
+dotenv==0.9.9
