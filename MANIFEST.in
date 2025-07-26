@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include requirements.txt
+include .env.example
+recursive-include algorithmic_trading_utilities *.py
+recursive-include tests *.py
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .pytest_cache*
