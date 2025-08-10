@@ -1,9 +1,18 @@
+"""
+Yahoo Finance data provider module.
+
+This module provides access to Yahoo Finance market screeners and data feeds
+for stock discovery and market analysis.
+"""
+
 from yahooquery import Screener
 import pandas as pd
 import time
+import yfinance
+from datetime import date
 
 # List of useful yfinance screeners for reference
-screeners = [
+SCREENERS = [
     "accident_health_insurance",
     "advertising_agencies",
     "aerospace_defense_major_diversified",
@@ -121,7 +130,7 @@ screeners = [
     "electronics_stores",
     "electronics_wholesale",
     "entertainment_diversified",
-    "fair_value_screener",  # Undervalued stocks with a strong & consistent history of earnings and revenue growth #TODO value strategy
+    "fair_value_screener",  # Undervalued stocks with strong & consistent earnings/revenue growth
     "farm_construction_machinery",
     "farm_products",
     "financial",
@@ -142,107 +151,84 @@ screeners = [
     "healthcare",
     "healthcare_information_services",
     "heavy_construction",
-    "high_yield_bond",  # High Yield Bond with Performance Rating of 4 & 5, low risk and top-half returns #TODO Bond trading strategy
+    "high_yield_bond",  # High Yield Bond with Performance Rating of 4 & 5
     "home_furnishing_stores",
     "home_furnishings_fixtures",
     "home_health_care",
     "home_improvement_stores",
     "hospitals",
-    "housewares_accessories",
+    "hotels_motels",
+    "household_personal_products",
     "independent_oil_gas",
     "industrial_electrical_equipment",
-    "industrial_equipment_components",
     "industrial_equipment_wholesale",
-    "industrial_goods",
     "industrial_metals_minerals",
-    "information_delivery_services",
     "information_technology_services",
     "insurance_brokers",
+    "insurance_diversified",
+    "insurance_life",
+    "insurance_property_casualty",
+    "integrated_oil_gas",
     "internet_information_providers",
-    "internet_service_providers",
     "internet_software_services",
     "investment_brokerage_national",
     "investment_brokerage_regional",
     "jewelry_stores",
-    "life_insurance",
-    "lodging",
-    "long_distance_carriers",
-    "longterm_care_facilities",
     "lumber_wood_production",
     "machine_tools_accessories",
     "major_airlines",
+    "major_drugs",
     "major_integrated_oil_gas",
     "management_services",
-    "marketing_services",
-    "meat_products",
+    "manufactured_housing",
+    "marine_shipping",
     "medical_appliances_equipment",
     "medical_equipment_wholesale",
     "medical_instruments_supplies",
     "medical_laboratories_research",
-    "mega_cap_hc",
-    "metal_fabrication",
+    "medical_practitioners",
+    "metal_fabricating",
+    "midscore_growth",
+    "mobile_telecommunications",
     "money_center_banks",
     "mortgage_investment",
-    "most_actives",  # Stocks ordered in descending order by intraday trade volume. #TODO consider for market making strategy
-    "most_actives_americas",
-    "most_actives_asia",
-    "most_actives_au",
-    "most_actives_br",
-    "most_actives_ca",
-    "most_actives_de",
-    "most_actives_dji",
-    "most_actives_es",
-    "most_actives_europe",
-    "most_actives_fr",
-    "most_actives_gb",
-    "most_actives_hk",
-    "most_actives_in",
-    "most_actives_it",
-    "most_actives_ndx",
-    "most_actives_nz",
-    "most_actives_sg",
-    "most_watched_tickers",
-    "movie_production_theaters",
-    "ms_basic_materials",
-    "ms_communication_services",
-    "ms_consumer_cyclical",
-    "ms_consumer_defensive",
-    "ms_energy",
-    "ms_financial_services",
-    "ms_healthcare",
-    "ms_industrials",
-    "ms_real_estate",
-    "ms_technology",
-    "ms_utilities",
+    "most_actives",
+    "motor_vehicles",
+    "movie_entertainment",
     "multimedia_graphics_software",
+    "music",
+    "natural_gas_distribution",
     "networking_communication_devices",
-    "nonmetallic_mineral_mining",
-    "office_supplies",
-    "oil_gas_drilling_exploration",
+    "nonferrous_metals",
+    "oil_gas_drilling",
     "oil_gas_equipment_services",
+    "oil_gas_integrated",
     "oil_gas_pipelines",
     "oil_gas_refining_marketing",
+    "optical_networking",
+    "other_consumer_services",
+    "other_specialty_stores",
     "packaging_containers",
-    "paper_paper_products",
+    "paper_lumber",
+    "personal_computers",
     "personal_products",
-    "personal_services",
     "photographic_equipment_supplies",
+    "plastic_rubber",
     "pollution_treatment_controls",
-    "portfolio_anchors",
-    "printed_circuit_boards",
+    "printing_services",
     "processed_packaged_goods",
-    "processing_systems_products",
     "property_casualty_insurance",
-    "property_management",
     "publishing_books",
     "publishing_newspapers",
     "publishing_periodicals",
-    "railroads",
     "real_estate_development",
-    "recreational_goods_other",
+    "real_estate_diversified",
+    "real_estate_investment_trusts",
+    "real_estate_operations",
+    "recreational_activities",
+    "recreational_products",
     "recreational_vehicles",
-    "regional_airlines",
-    "regional_midatlantic_banks",
+    "regional_mid_atlantic_banks",
     "regional_midwest_banks",
     "regional_northeast_banks",
     "regional_pacific_banks",
@@ -273,7 +259,7 @@ screeners = [
     "services",
     "shipping",
     "silver",
-    "small_cap_gainers",  # Small Caps with a 1 day price change of 5.0% or more. #TODO small cap strategy
+    "small_cap_gainers",  # Small Caps with 1 day price change of 5.0% or more
     "small_tools_accessories",
     "solid_large_growth_funds",
     "solid_midcap_growth_funds",
@@ -298,7 +284,7 @@ screeners = [
     "textile_industrial",
     "tobacco_products_other",
     "top_energy_us",
-    "top_etfs",  # ETFs with Performance Rating of 4 & 5 ordered by Percent Change #TODO ETF strategy
+    "top_etfs",  # ETFs with Performance Rating of 4 & 5 ordered by Percent Change
     "top_etfs_hk",
     "top_etfs_in",
     "top_etfs_us",
@@ -323,8 +309,8 @@ screeners = [
     "toys_games",
     "trucking",
     "trucks_other_vehicles",
-    "undervalued_growth_stocks",  # Stocks with earnings growth rates better than 25% and relatively low PE and PEG ratios. #TODO accelerated earnings strategy
-    "undervalued_large_caps",  # Large cap stocks that are potentially undervalued. #TODO value strategy
+    "undervalued_growth_stocks",  # Stocks with earnings growth >25% and low PE/PEG ratios
+    "undervalued_large_caps",  # Large cap stocks that are potentially undervalued
     "utilities",
     "waste_management",
     "water_utilities",
@@ -332,7 +318,6 @@ screeners = [
 ]
 
 
-# TODO if this still fails add a curl https://stackoverflow.com/questions/78111453/yahoo-finance-api-file-get-contents-429-too-many-requests
 def get_stock_gainers_table():
     """
     Get the table of stock gainers for the day with retry logic to handle rate limits.
@@ -357,7 +342,7 @@ def get_stock_gainers_table():
                 gainers_df = gainers_df[gainers_df["marketCap"] >= 10000000000]
 
                 # Filter by tradeable
-                # gainers_df = gainers_df[gainers_df['tradeable']=='True'] #TODO check during the week
+                # gainers_df = gainers_df[gainers_df['tradeable']=='True']
 
                 gainers_df = gainers_df[
                     [
@@ -392,3 +377,65 @@ def get_stock_gainers_table():
                 raise
 
     raise Exception("Failed to fetch stock gainers table after multiple retries.")
+
+
+def get_screener_data(screener_name, count=250):
+    """
+    Get data from a specific Yahoo Finance screener.
+
+    Args:
+        screener_name (str): Name of the screener from the SCREENERS list
+        count (int): Number of results to return (default: 250)
+
+    Returns:
+        pandas.DataFrame: DataFrame containing the screener results
+    """
+    if screener_name not in SCREENERS:
+        raise ValueError(
+            f"Screener '{screener_name}' not found. Available screeners: {SCREENERS}"
+        )
+
+    s = Screener()
+    max_retries = 5
+    delay = 1
+
+    for attempt in range(max_retries):
+        try:
+            data = s.get_screeners([screener_name], count)
+            return pd.DataFrame(data[screener_name]["quotes"])
+        except Exception as e:
+            if "429" in str(e):
+                print(f"Rate limit hit. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                print(f"Error fetching screener data: {e}")
+                raise
+
+    raise Exception(
+        f"Failed to fetch {screener_name} screener data after multiple retries."
+    )
+
+# TODO unit test
+def get_sp500_prices(start_date: str) -> pd.DataFrame:
+    """
+    Get S&P 500 prices since a specified start date until today using yfinance.
+
+    Parameters:
+        start_date (str): The start date in 'YYYY-MM-DD' format.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the historical S&P 500 prices.
+    """
+    sp500_symbol = "^GSPC"  # S&P 500 index symbol in yfinance
+    sp500_prices_df = yfinance.download(
+        tickers=[sp500_symbol],
+        start=start_date,
+        end=date.today().isoformat(),
+        interval="1d",
+    )["Close"].reset_index()
+
+    sp500_prices_df = sp500_prices_df.rename(columns={"Date": "date"})
+
+
+    return sp500_prices_df
