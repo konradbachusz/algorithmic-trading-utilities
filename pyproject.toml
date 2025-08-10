@@ -7,13 +7,40 @@ name = "algorithmic-trading-utilities"
 version = "0.1.0"
 description = "Algorithmic trading utilities for market data and analysis"
 authors = [{name = "Konrad Bachusz"}]
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 dependencies = [
     "alpaca-py",
     "pandas",
     "python-dotenv",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "mypy>=0.910"
+]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0"
+]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = [""]
 include = ["algorithmic_trading_utilities*"]
