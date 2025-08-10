@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "algorithmic-trading-utilities"
+version = "0.1.0"
+description = "Algorithmic trading utilities for market data and analysis"
+authors = [{name = "Konrad Bachusz"}]
+dependencies = [
+    "alpaca-py",
+    "pandas",
+    "python-dotenv",
+]
+requires-python = ">=3.7"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["algorithmic_trading_utilities*"]
