@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(1, "algorithmic_trading_utilities")
 import numpy as np
 import pandas as pd
@@ -14,8 +15,9 @@ except ImportError:
 try:
     from brokers.alpaca.alpaca_ops import get_portfolio_history
 except ImportError:
-    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import get_portfolio_history
-
+    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
+        get_portfolio_history,
+    )
 
 
 def get_average_return(equity):

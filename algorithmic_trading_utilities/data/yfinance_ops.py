@@ -1,7 +1,9 @@
 import pandas as pd
 import yfinance
 from datetime import date
+
 # TODO unit test and move to yfinance_ops.py
+
 
 def get_sp500_prices(start_date: str) -> pd.DataFrame:
     """

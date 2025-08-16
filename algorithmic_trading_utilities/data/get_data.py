@@ -1,4 +1,4 @@
-import alpaca
+# TODO get specific imports instead of *
 from alpaca.data.live.stock import *
 from alpaca.data.historical.stock import *
 from alpaca.data.requests import *
@@ -7,10 +7,8 @@ from alpaca.trading.client import *
 from alpaca.trading.stream import *
 from alpaca.trading.requests import *
 from alpaca.trading.enums import *
-from alpaca.common.exceptions import APIError
 from typing import List, Any, Tuple
-import yfinance
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import pandas as pd
 
 
@@ -140,6 +138,3 @@ def get_last_price(symbol, stock_historical_data_client):
         last_close_price = None
 
     return last_close_price
-
-
-

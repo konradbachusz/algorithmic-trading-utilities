@@ -1,13 +1,12 @@
 import sys
+
 sys.path.insert(1, "algorithmic_trading_utilities")
-import numpy as np
 from alpaca_trade_api.rest import REST
 import os
 from dotenv import load_dotenv
 from datetime import date
-from yfinance import download
-import pandas as pd
 
+# TODO research if there's a more elegant solution to this
 # Try different import approaches for data modules
 try:
     from data.yfinance_ops import get_sp500_prices
@@ -18,11 +17,14 @@ except ImportError:
 try:
     from common.viz_ops import compare_portfolio_and_benchmark
 except ImportError:
-    from algorithmic_trading_utilities.common.viz_ops import compare_portfolio_and_benchmark
+    from algorithmic_trading_utilities.common.viz_ops import (
+        compare_portfolio_and_benchmark,
+    )
 
 # Load environment variables from .env file
 load_dotenv()
 
+# TODO fix for real API keys
 # Initialize Alpaca API
 api = REST(
     os.environ["PAPER_KEY"],
