@@ -10,7 +10,8 @@ from alpaca.trading.enums import *
 from alpaca.common.exceptions import APIError
 from typing import List, Any, Tuple
 import yfinance
-from datetime import date
+from datetime import date, datetime, timedelta
+import pandas as pd
 
 
 def get_assets(trading_client):

@@ -1,9 +1,22 @@
 import sys
 sys.path.insert(1, "algorithmic_trading_utilities")
 import numpy as np
-from data.yfinance_ops import get_sp500_prices
-from brokers.alpaca.alpaca_ops import get_portfolio_history
 import pandas as pd
+
+# Try different import approaches for data modules
+try:
+    from data.yfinance_ops import get_sp500_prices
+except ImportError:
+    from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
+
+
+# Try different import approaches for broker modules
+try:
+    from brokers.alpaca.alpaca_ops import get_portfolio_history
+except ImportError:
+    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import get_portfolio_history
+
+
 
 def get_average_return(equity):
     """
