@@ -1,20 +1,14 @@
 import sys
 sys.path.insert(1, "algorithmic_trading_utilities")
-
-# from common.viz_ops import plot_time_series
-# 
-
-# print(get_sp500_prices("2023-01-01"))
-
 import numpy as np
 from alpaca_trade_api.rest import REST
 import os
 from dotenv import load_dotenv
 from datetime import date
 from yfinance import download
-from get_data import get_sp500_prices
+from data.yfinance_ops import get_sp500_prices
 import pandas as pd
-from viz_ops import compare_portfolio_and_benchmark
+from common.viz_ops import compare_portfolio_and_benchmark
 
 # Load environment variables from .env file
 load_dotenv()
