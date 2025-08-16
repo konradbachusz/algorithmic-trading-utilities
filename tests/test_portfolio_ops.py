@@ -1,5 +1,8 @@
+import sys
+
+sys.path.insert(1, "algorithmic_trading_utilities")
 import pytest
-from portfolio_ops import (
+from common.portfolio_ops import (
     get_average_return,
     get_total_return,
     get_std_dev,
@@ -74,11 +77,15 @@ class TestPortfolioOps:
         mock_equity = [100, 105, 110]
         mock_portfolio_history = mocker.Mock(equity=mock_equity)
         mocker.patch(
-            "portfolio_ops.get_portfolio_history", return_value=mock_portfolio_history
+            "common.portfolio_ops.get_portfolio_history",
+            return_value=mock_portfolio_history,
         )
         # Patch get_sp500_prices to return a DataFrame with the same length/index as mock_equity
         mock_benchmark = pd.DataFrame({"Close": [200, 210, 220]})
-        mocker.patch("portfolio_ops.get_sp500_prices", return_value=mock_benchmark)
+        mocker.patch(
+            "common.portfolio_ops.get_sp500_prices",
+            return_value=mock_benchmark,
+        )
 
         metrics = calculate_performance_metrics()
         assert round(metrics["average_return"], 2) == pytest.approx(0.05, rel=1e-2)

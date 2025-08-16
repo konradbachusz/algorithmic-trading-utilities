@@ -1,6 +1,9 @@
+import sys
+
+sys.path.insert(1, "algorithmic_trading_utilities")
 import pandas as pd
 import matplotlib.pyplot as plt
-from viz_ops import plot_time_series
+from common.viz_ops import plot_time_series
 
 
 class TestPlotTimeSeries:

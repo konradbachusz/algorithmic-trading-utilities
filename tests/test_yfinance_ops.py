@@ -1,53 +1,38 @@
 import sys
 
-sys.path.insert(1, "src")
-from yfinance_ops import get_stock_gainers_table
+sys.path.insert(1, "algorithmic_trading_utilities")
+from data.yfinance_ops import get_sp500_prices
+import pandas as pd
+from unittest.mock import patch
 
 
-class TestGetStockGainersTable:
+class TestGetSp500Prices:
 
-    # returns DataFrame with correct columns
-    def test_returns_dataframe_with_correct_columns(self, mocker):
+    # returns DataFrame with S&P 500 prices for valid date range
+    def test_returns_dataframe_with_sp500_prices(self, mocker):
+        # Mock the yfinance.download function
+        mock_download = mocker.patch(
+            "data.yfinance_ops.yfinance.download"
+        )
+        mock_data = pd.Series([100.0, 101.0, 102.0], name="Close")
+        mock_download.return_value = {"Close": mock_data}
 
-        # Mock the Screener class and its method
-        mock_screener = mocker.patch("yfinance_ops.Screener")
-        mock_screener_instance = mock_screener.return_value
-        mock_screener_instance.get_screeners.return_value = {
-            "day_gainers": {
-                "quotes": [
-                    {
-                        "exchange": "NYSE",
-                        "symbol": "AAPL",
-                        "shortName": "Apple Inc.",
-                        "regularMarketChangePercent": 2.5,
-                        "fiftyDayAverageChangePercent": 1.2,
-                        "marketCap": 20000000000,
-                    }
-                ]
-            }
-        }
+        result = get_sp500_prices("2023-01-01")
 
-        result = get_stock_gainers_table()
-        expected_columns = [
-            "exchange",
-            "symbol",
-            "shortName",
-            "regularMarketChangePercent",
-            "fiftyDayAverageChangePercent",
-        ]
+        assert isinstance(result, pd.Series)
+        assert len(result) == 3
+        mock_download.assert_called_once()
 
-        assert list(result.columns) == expected_columns
+    # handles empty response gracefully
+    def test_handles_empty_response(self, mocker):
+        # Mock the yfinance.download function to return empty data
+        mock_download = mocker.patch(
+            "data.yfinance_ops.yfinance.download"
+        )
+        mock_data = pd.Series([], name="Close")
+        mock_download.return_value = {"Close": mock_data}
 
-    # handles empty response from Yahoo Screener API
-    def test_handles_empty_response_from_yahoo_screener_api(self, mocker):
+        result = get_sp500_prices("2023-01-01")
 
-        # Mock the Screener class and its method
-        mock_screener = mocker.patch("yfinance_ops.Screener")
-        mock_screener_instance = mock_screener.return_value
-        mock_screener_instance.get_screeners.return_value = {
-            "day_gainers": {"quotes": []}
-        }
-
-        result = get_stock_gainers_table()
-
-        assert result.empty
+        assert isinstance(result, pd.Series)
+        assert len(result) == 0

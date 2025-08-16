@@ -1,7 +1,7 @@
 import sys
 
-sys.path.insert(1, "src")
-from get_data import (
+sys.path.insert(1, "algorithmic_trading_utilities")
+from data.get_data import (
     get_assets,
     get_asset_list,
     get_historical_data,
