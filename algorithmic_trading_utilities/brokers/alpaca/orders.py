@@ -8,12 +8,23 @@ from alpaca.trading.stream import *
 from alpaca.trading.requests import *
 from alpaca.trading.enums import *
 from alpaca.common.exceptions import APIError
-from common.config import trading_client
 import alpaca_trade_api as tradeapi
 import os
 from dotenv import load_dotenv
 import time
-from common.email_ops import send_email_notification
+
+
+# TODO research if there's a more elegant solution to this
+# Try different import approaches for data modules
+try:
+    from common.email_ops import send_email_notification
+except ImportError:
+    from algorithmic_trading_utilities.common.email_ops import send_email_notification
+
+try:
+    from common.config import trading_client
+except ImportError:
+    from algorithmic_trading_utilities.common.config import trading_client
 
 # Load environment variables from .env file
 load_dotenv()
