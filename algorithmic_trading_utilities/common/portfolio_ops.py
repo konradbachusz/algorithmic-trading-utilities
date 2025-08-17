@@ -198,7 +198,7 @@ def get_portfolio_and_benchmark_values():
     """
 
     # Get S&P 500 prices and portfolio equity
-    benchmark_df = get_sp500_prices("2025-04-08")
+    benchmark_df = get_sp500_prices("2025-04-08") #TODO move out as a parameter
     # Defensive: handle empty or failed download from yfinance
     if benchmark_df is None or benchmark_df.empty:
         # Return empty DataFrame with correct columns and no rows

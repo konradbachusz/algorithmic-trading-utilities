@@ -63,7 +63,7 @@ def plot_portfolio(df):
     plt.figure(figsize=(12, 6))
     plt.plot(df.index, df[column], label=column)
     plt.xlabel("Date")
-    plt.ylabel(column)
+    plt.ylabel("Returns %")
     plt.title("Portfolio Returns")
     plt.legend()
     plt.grid(True)
