@@ -4,13 +4,11 @@ A comprehensive Python library for algorithmic trading with the Alpaca API. This
 
 ## Features
 
-- **Position Management**: Automated stop loss placement, trailing stops, and position liquidation
-- **Order Management**: Complete order lifecycle management including cancellation and monitoring
 - **Portfolio Analytics**: Calculate performance metrics including Sharpe ratio, Sortino ratio, alpha, beta, and drawdown
-- **Risk Management**: Configurable loss thresholds and position sizing
+- **Data Management**: Historical and real-time data from Alpaca and Yahoo Finance
 - **Email Notifications**: Automated alerts for trade execution and system events
 - **Yahoo Finance Integration**: Access to 300+ market screeners for stock discovery
-- **Quantitative Tools**: Correlation analysis and data processing utilities
+- **Visualization Tools**: Time series plotting and portfolio comparison charts
 
 ## Installation
 
@@ -51,6 +49,9 @@ numpy>=1.21.0
 pandas>=1.3.0
 alpaca-trade-api>=2.3.0
 yfinance>=0.1.87
+yahooquery>=2.3.0
+matplotlib>=3.5.0
+python-dotenv>=0.19.0
 git+https://github.com/your-username/algorithmic-trading-utilities.git
 ```
 
@@ -72,9 +73,10 @@ git+https://github.com/your-username/algorithmic-trading-utilities.git
 
 ```python
 # Import specific modules
-from algorithmic_trading_utilities.brokers.alpaca.portfolio_ops import calculate_performance_metrics
-from algorithmic_trading_utilities.data.yahoo_finance import get_stock_gainers_table
-from algorithmic_trading_utilities.brokers.alpaca.positions import close_positions_below_threshold
+from algorithmic_trading_utilities.common.portfolio_ops import calculate_performance_metrics
+from algorithmic_trading_utilities.data.yfinance_ops import get_stock_gainers_table, get_sp500_prices
+from algorithmic_trading_utilities.data.get_data import get_assets, get_historical_data
+from algorithmic_trading_utilities.common.email_ops import send_email_notification
 
 # Use the utilities in your trading strategy
 metrics = calculate_performance_metrics()
@@ -84,120 +86,166 @@ gainers = get_stock_gainers_table()
 ### Portfolio Performance Analysis
 
 ```python
-from algorithmic_trading_utilities.brokers.alpaca.portfolio_ops import calculate_performance_metrics, get_portfolio_and_benchmark_returns
+from algorithmic_trading_utilities.common.portfolio_ops import (
+    calculate_performance_metrics, 
+    get_portfolio_and_benchmark_returns,
+    get_alpha,
+    get_beta
+)
 
 # Get comprehensive performance metrics
 metrics = calculate_performance_metrics()
-print(f"Sharpe Ratio: {metrics['annual_sharpe_ratio']:.2f}")
+print(f"Annual Sharpe Ratio: {metrics['annual_sharpe_ratio']:.2f}")
 print(f"Total Return: {metrics['total_return']:.2f}%")
 print(f"Max Drawdown: {metrics['max_drawdown']:.2f}")
+print(f"Alpha: {metrics['alpha']:.4f}")
+print(f"Beta: {metrics['beta']:.4f}")
 
 # Compare portfolio vs S&P 500
 comparison_df = get_portfolio_and_benchmark_returns()
 print(comparison_df.tail())
 ```
 
+### Data Retrieval and Analysis
+
+```python
+from algorithmic_trading_utilities.data.get_data import (
+    get_assets, 
+    get_historical_data, 
+    get_last_price
+)
+from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
+from alpaca.data.historical.stock import StockHistoricalDataClient
+from alpaca.trading.client import TradingClient
+
+# Initialize clients
+trading_client = TradingClient("your_key", "your_secret")
+data_client = StockHistoricalDataClient("your_key", "your_secret")
+
+# Get available assets
+assets = get_assets(trading_client)
+print(f"Found {len(assets)} tradeable assets")
+
+# Get historical data for a specific stock
+historical_data = get_historical_data("AAPL", data_client)
+print(historical_data.head())
+
+# Get S&P 500 benchmark data
+sp500_data = get_sp500_prices("2024-01-01")
+print(sp500_data.tail())
+```
+
 ### Yahoo Finance Market Screening
 
 ```python
-from algorithmic_trading_utilities.data.yahoo_finance import get_stock_gainers_table
+from algorithmic_trading_utilities.data.yfinance_ops import get_stock_gainers_table
 
-# Get today's top large-cap gainers
+# Get today's top large-cap gainers (market cap >= $10B)
 gainers_df = get_stock_gainers_table()
 print(gainers_df.head())
 
-# Available screeners include:
-# - day_gainers, day_losers
-# - most_actives, small_cap_gainers
-# - undervalued_large_caps, fair_value_screener
-# - And 300+ more market screeners
+# Columns include:
+# - exchange, symbol, shortName
+# - regularMarketChangePercent
+# - fiftyDayAverageChangePercent
 ```
 
-### Risk Management
+### Email Notifications
 
 ```python
-from algorithmic_trading_utilities.brokers.alpaca.stop_loss_ops import place_trailing_stop_losses_funct
-from algorithmic_trading_utilities.brokers.alpaca.positions import close_positions_below_threshold
+from algorithmic_trading_utilities.common.email_ops import send_email_notification
 
-# Place trailing stop losses for all positions
-stop_losses_placed = place_trailing_stop_losses_funct(threshold=0.1)  # 10%
+# Send success notification
+send_email_notification(
+    subject="Trade Execution",
+    notification="Successfully placed buy order for AAPL",
+    type="SUCCESS"
+)
 
-# Close positions with >5% loss
-positions_closed = close_positions_below_threshold(threshold=0.05)
+# Send failure notification
+send_email_notification(
+    subject="System Alert",
+    notification="Failed to connect to market data",
+    type="FAILURE"
+)
+```
+
+### Visualization
+
+```python
+from algorithmic_trading_utilities.common.viz_ops import (
+    plot_time_series, 
+    compare_portfolio_and_benchmark
+)
+from algorithmic_trading_utilities.common.portfolio_ops import get_portfolio_and_benchmark_values
+
+# Plot portfolio vs benchmark comparison
+comparison_df = get_portfolio_and_benchmark_values()
+compare_portfolio_and_benchmark(comparison_df, "Portfolio vs S&P 500")
+
+# Plot any time series data
+plot_time_series(comparison_df)
 ```
 
 ## Library Structure
 
 The library is organized into distinct modules for clean separation of concerns:
 
-### Broker Integrations (`algorithmic_trading_utilities.brokers`)
-
-#### Alpaca (`algorithmic_trading_utilities.brokers.alpaca`)
-- **`client.py`** - API client configuration and setup
-- **`orders.py`** - Order placement, cancellation, and management
-- **`positions.py`** - Position tracking and management
-- **`portfolio_ops.py`** - Portfolio analytics and performance metrics
-- **`stop_loss_ops.py`** - Stop loss and trailing stop management
-- **`data.py`** - Historical and real-time market data
-
-#### Future Broker Support
-- **`coinbase`** - Cryptocurrency trading via Coinbase (planned)
-- **`kraken`** - Multi-asset trading via Kraken (planned)
-
 ### Data Providers (`algorithmic_trading_utilities.data`)
-- **`yahoo_finance.py`** - 300+ market screeners and data feeds
+- **`get_data.py`** - Alpaca data retrieval (assets, historical data, last prices)
+- **`yfinance_ops.py`** - Yahoo Finance integration (S&P 500 data, market screeners)
+
+### Broker Integrations (`algorithmic_trading_utilities.brokers`)
+- **`alpaca/alpaca_ops.py`** - Alpaca API portfolio history integration
 
 ### Common Utilities (`algorithmic_trading_utilities.common`)
-- **`quantitative_tools.py`** - Statistical analysis and correlation tools
-- **`email_ops.py`** - Email notification system
-- **`visualization.py`** - Plotting and charting utilities
+- **`portfolio_ops.py`** - Portfolio analytics and performance metrics
+- **`email_ops.py`** - Email notification system  
+- **`viz_ops.py`** - Plotting and charting utilities
 
 ## Core Modules
 
-### Alpaca Integration (`algorithmic_trading_utilities.brokers.alpaca`)
+### Portfolio Analytics (`algorithmic_trading_utilities.common.portfolio_ops`)
 
-#### Position Management (`positions.py`)
-- Track open positions and P&L
-- Automated position closure based on loss thresholds
-- Integration with trailing stop loss orders
+Key functions:
+- `calculate_performance_metrics()` - Comprehensive performance analysis
+- `get_alpha()`, `get_beta()` - Risk-adjusted performance metrics
+- `get_sharpe_ratio()`, `get_sortino_ratio()` - Risk-return ratios
+- `get_max_drawdown()` - Risk assessment
+- `get_portfolio_and_benchmark_returns()` - Comparative analysis
 
-#### Order Management (`orders.py`)
-- Place market, limit, and trailing stop orders
-- Cancel orders with retry logic and rate limiting
-- Monitor order status and execution
+### Data Operations (`algorithmic_trading_utilities.data`)
 
-#### Portfolio Analytics (`portfolio_ops.py`)
-- Calculate Sharpe ratio, Sortino ratio, alpha, beta
-- Track drawdown and cumulative returns
-- Benchmark comparison against S&P 500
+#### Alpaca Data (`get_data.py`)
+- `get_assets()` - Retrieve tradeable assets
+- `get_historical_data()` - Historical price data
+- `get_last_price()` - Current market prices
+- `get_asset_df()` - Convert asset data to DataFrame
 
-#### Data Operations (`data.py`)
-- Historical price data from Alpaca
-- Real-time market data feeds
-- Asset filtering and validation
+#### Yahoo Finance (`yfinance_ops.py`)
+- `get_sp500_prices()` - S&P 500 benchmark data
+- `get_stock_gainers_table()` - Daily market gainers with retry logic
 
-### Yahoo Finance Integration (`algorithmic_trading_utilities.data.yahoo_finance`)
-- Access to 300+ market screeners
-- Real-time market data
-- Sector and geographic filtering
+### Email Notifications (`algorithmic_trading_utilities.common.email_ops`)
+- `send_email_notification()` - Send formatted email alerts with timestamps
 
-### Common Utilities (`algorithmic_trading_utilities.common`)
-- Broker-agnostic quantitative analysis tools
-- Email notification system
-- Visualization and plotting utilities
+### Visualization (`algorithmic_trading_utilities.common.viz_ops`)
+- `plot_time_series()` - General time series plotting
+- `compare_portfolio_and_benchmark()` - Portfolio comparison charts
 
 ## Configuration
 
-Key parameters in `algorithmic_trading_utilities.brokers.alpaca.client.py`:
+Key parameters can be configured via environment variables:
 
 ```python
-# Risk management
-loss_threshold = 0.05  # 5% stop loss
-trailing_stop_loss_threshold = 0.1  # 10% trailing stop
-
-# API configuration (set via environment variables)
+# API configuration
 PAPER_KEY = "your_alpaca_paper_api_key"
 PAPER_SECRET = "your_alpaca_paper_secret_key"
+
+# Email configuration
+web_app_email = "your_sender_email@gmail.com"
+web_app_email_password = "your_app_password"
+recipient_email = "your_recipient_email@gmail.com"
 ```
 
 ## Testing
@@ -206,6 +254,11 @@ Run the test suite:
 ```bash
 pytest tests/ -v -s
 ```
+
+The test suite includes:
+- Portfolio operations testing (`test_portfolio_ops.py`)
+- Data retrieval testing (`test_get_data.py`) 
+- Email functionality testing (`test_email_ops.py`)
 
 ## Development Workflow
 
@@ -225,12 +278,33 @@ flake8 .
 
 The library provides access to 300+ market screeners including:
 
-- **Momentum**: `day_gainers`, `small_cap_gainers`, `most_actives`
-- **Value**: `undervalued_large_caps`, `fair_value_screener`
-- **Sector**: `ms_technology`, `ms_healthcare`, `ms_energy`
-- **ETFs**: `top_etfs`, `top_etfs_us`
+- **Momentum**: `day_gainers`, `day_losers`, `small_cap_gainers`, `most_actives`
+- **Value**: `undervalued_large_caps`, `fair_value_screener`, `undervalued_growth_stocks`
+- **Sector**: `ms_technology`, `ms_healthcare`, `ms_energy`, `ms_financial_services`
+- **ETFs**: `top_etfs`, `top_etfs_us`, `top_etfs_hk`
 - **Bonds**: `high_yield_bond`
-- **Geographic**: Regional screeners for US, EU, Asia markets
+- **Geographic**: Regional screeners for Americas, Asia, Europe
+- **Market Cap**: `aggressive_small_caps`, `mega_cap_hc`
+
+## Performance Metrics Available
+
+The library calculates comprehensive portfolio metrics:
+
+### Return Metrics
+- Average Return
+- Total Return  
+- Cumulative Return
+
+### Risk Metrics
+- Standard Deviation
+- Maximum Drawdown
+- Downside Deviation
+
+### Risk-Adjusted Metrics
+- Sharpe Ratio (daily and annualized)
+- Sortino Ratio (daily and annualized)
+- Alpha (vs S&P 500)
+- Beta (vs S&P 500)
 
 ## Risk Disclaimer
 
