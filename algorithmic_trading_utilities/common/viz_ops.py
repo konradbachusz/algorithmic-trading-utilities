@@ -46,12 +46,11 @@ def compare_portfolio_and_benchmark(df, title):
 
 
 # TODO unit test
-def plot_portfolio(df, title):
+def plot_portfolio(df):
     """
     Plots a time series line chart for the portfolio DataFrame.
     Parameters:
         df (pd.DataFrame): DataFrame with a datetime-like index and one or more columns to plot.
-        title (str): Title of the plot.
     Displays:
         A matplotlib plot showing each column of the DataFrame as a separate line, with legend, grid, and axis labels.
     """
@@ -63,7 +62,7 @@ def plot_portfolio(df, title):
         plt.ylabel(df.columns[0])
     else:
         plt.ylabel("Portfolio Value")
-    plt.title(title)
+    plt.title("Portfolio Returns")
     plt.legend()
     plt.grid(True)
     plt.show()
