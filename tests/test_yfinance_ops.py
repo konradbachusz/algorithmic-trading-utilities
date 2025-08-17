@@ -11,9 +11,7 @@ class TestGetSp500Prices:
     # returns DataFrame with S&P 500 prices for valid date range
     def test_returns_dataframe_with_sp500_prices(self, mocker):
         # Mock the yfinance.download function
-        mock_download = mocker.patch(
-            "data.yfinance_ops.yfinance.download"
-        )
+        mock_download = mocker.patch("data.yfinance_ops.yfinance.download")
         mock_data = pd.Series([100.0, 101.0, 102.0], name="Close")
         mock_download.return_value = {"Close": mock_data}
 
@@ -26,9 +24,7 @@ class TestGetSp500Prices:
     # handles empty response gracefully
     def test_handles_empty_response(self, mocker):
         # Mock the yfinance.download function to return empty data
-        mock_download = mocker.patch(
-            "data.yfinance_ops.yfinance.download"
-        )
+        mock_download = mocker.patch("data.yfinance_ops.yfinance.download")
         mock_data = pd.Series([], name="Close")
         mock_download.return_value = {"Close": mock_data}
 
