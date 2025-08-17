@@ -241,6 +241,7 @@ def get_portfolio_and_benchmark_returns():
     return pct_change_df
 
 
+
 def calculate_performance_metrics():
     """
     Calculate all performance metrics and return them as a dictionary.
