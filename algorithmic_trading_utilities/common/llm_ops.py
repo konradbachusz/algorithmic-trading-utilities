@@ -41,9 +41,10 @@ He said orforglipron, which has a simpler production process than injected GLP-1
 The executive declined to comment on pricing plans for orforglipron."""
 
 
-prompt=FINANCIAL_ANALYSIS_PROMPT.format(article=article)
+prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article)
 
-#TODO unit test this function
+
+# TODO unit test this function
 def get_basic_ollama_llm_response(model, prompt):
     """
     Sends a prompt to the LLM API and returns the full text response.
@@ -99,7 +100,9 @@ def get_basic_ollama_llm_response(model, prompt):
                     print(f"Malformed line content: {decoded_line}")
                     break  # Stop if a line is malformed
                 except Exception as e:
-                    print(f"\nAn unexpected error occurred while processing a line: {e}")
+                    print(
+                        f"\nAn unexpected error occurred while processing a line: {e}"
+                    )
                     print(f"Line content: {line.decode('utf-8')}")
                     break
 
@@ -117,7 +120,8 @@ def get_basic_ollama_llm_response(model, prompt):
         print(f"An unhandled error occurred: {e}")
     return None
 
-def get_article_sentiment_json(article: str) -> str:
+
+def get_article_sentiment_json(article: str) -> dict:
     """
     Analyzes the sentiment of a financial article using an LLM.
 
@@ -125,11 +129,12 @@ def get_article_sentiment_json(article: str) -> str:
         article (str): The financial article text.
 
     Returns:
-        str: The sentiment analysis JSON from the LLM.
+        dict: The sentiment analysis JSON from the LLM, or None if failed.
     """
+    # Create the prompt with the article
     prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article)
-    response=get_basic_ollama_llm_response(model, prompt)
 
+    # Define the keys we expect in a valid response
     required_keys = [
         "primary_entity",
         "key_information_summary",
@@ -139,42 +144,48 @@ def get_article_sentiment_json(article: str) -> str:
         "recommendation_justification",
     ]
 
-    max_attempts = 3
-    attempt = 0
-    result_json = None
-
-    while attempt < max_attempts:
-        try:
-            # Try to parse the response directly as JSON, or extract JSON from a string with extra text
-            try:
-                result_json = json.loads(response)
-            except json.JSONDecodeError:
-                # Attempt to extract JSON object from the response string
-                match = re.search(r'\{.*\}', response, re.DOTALL)
-                if match:
-                    json_str = match.group(0)
-                    result_json = json.loads(json_str)
-                else:
-                    raise
-            # Check for required keys (case-insensitive for Symbol/symbol)
-            has_symbol = "Symbol" in result_json or "symbol" in result_json
-            has_required_keys = all(key in result_json for key in required_keys)
-            
-            if has_required_keys and has_symbol:
-                return result_json
-            else:
-                missing_keys = [key for key in required_keys if key not in result_json]
-                if not has_symbol:
-                    missing_keys.append("Symbol/symbol")
-                print(f"Attempt {attempt+1}: Missing required keys: {missing_keys}. Retrying...")
-        except json.JSONDecodeError:
-            print(f"Attempt {attempt+1}: Response is not valid JSON. Retrying...")
-
-        attempt += 1
-        time.sleep(1)
+    # Try up to 3 times to get a valid response
+    for attempt in range(3):
+        # Get response from LLM
         response = get_basic_ollama_llm_response(model, prompt)
+        if not response:
+            continue
 
-    print("Failed to get a valid response after 3 attempts.")
+        try:
+            # Try to parse as JSON directly
+            result_json = json.loads(response)
+        except json.JSONDecodeError:
+            # If that fails, try to extract JSON from within the response text
+            json_match = re.search(r"\{.*\}", response, re.DOTALL)
+            if json_match:
+                try:
+                    result_json = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    print(f"Attempt {attempt+1}: Could not parse JSON. Retrying...")
+                    continue
+            else:
+                print(f"Attempt {attempt+1}: No JSON found in response. Retrying...")
+                continue
+
+        # Check if all required keys are present (including Symbol/symbol)
+        has_symbol = "Symbol" in result_json or "symbol" in result_json
+        has_all_keys = all(key in result_json for key in required_keys)
+
+        if has_all_keys and has_symbol:
+            return result_json
+        else:
+            # Log what's missing for debugging
+            missing = [key for key in required_keys if key not in result_json]
+            if not has_symbol:
+                missing.append("Symbol/symbol")
+            print(f"Attempt {attempt+1}: Missing keys: {missing}. Retrying...")
+
+        # Wait before retrying
+        time.sleep(1)
+
+    # All attempts failed
+    print("Failed to get valid response after 3 attempts.")
     return None
+
 
 print(get_article_sentiment_json(article))
