@@ -36,4 +36,9 @@ trailing_stop_loss_threshold = 0.1  # Set trailing stop loss threshold to 10%
 # setup clients
 trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=paper)
 
+
+# LLM Model configuration
+model="gemma3:1b"
+ollama_url="http://localhost:11434/api/generate"
 ## PROD ##
+#TODO

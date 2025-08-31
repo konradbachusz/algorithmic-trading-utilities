@@ -6,12 +6,14 @@ sys.path.insert(1, "algorithmic_trading_utilities")
 # Try different import approaches for data modules
 try:
     from common.prompts import FINANCIAL_ANALYSIS_PROMPT
+    from common.config import model, ollama_url
 except ImportError:
     from algorithmic_trading_utilities.common.prompts import FINANCIAL_ANALYSIS_PROMPT
+    from algorithmic_trading_utilities.common.config import model, ollama_url
+import time
+import re
 
 # TODO implement this: https://community.crewai.com/t/connecting-ollama-with-crewai/2222/2
-# The URL for the API endpoint #TODO move to config
-url = "http://localhost:11434/api/generate"
 
 article = """Lilly expects orforglipron obesity results in third quarter
 By Deena Beasley
@@ -38,10 +40,11 @@ He said orforglipron, which has a simpler production process than injected GLP-1
 "This is the type of molecule that is going to allow us to reach the broader globe," Custer said.
 The executive declined to comment on pricing plans for orforglipron."""
 
-model="gemma3:1b"
+
 prompt=FINANCIAL_ANALYSIS_PROMPT.format(article=article)
 
-def get_basic_llm_response(model, prompt):
+#TODO unit test this function
+def get_basic_ollama_llm_response(model, prompt):
     """
     Sends a prompt to the LLM API and returns the full text response.
     Args:
@@ -58,7 +61,7 @@ def get_basic_llm_response(model, prompt):
 
     try:
         # Make the POST request with stream=True to process the response in chunks. To get a stream of data change stream to True.
-        response = requests.post(url, json=payload, stream=False)
+        response = requests.post(ollama_url, json=payload, stream=False)
 
         # Raise an exception for HTTP errors (4xx or 5xx)
         response.raise_for_status()
@@ -114,6 +117,64 @@ def get_basic_llm_response(model, prompt):
         print(f"An unhandled error occurred: {e}")
     return None
 
-print(get_basic_llm_response(model, prompt))
-print("\n")
-print(get_basic_llm_response(model, "What is the capital of Paris? Respond in French"))
+def get_article_sentiment_json(article: str) -> str:
+    """
+    Analyzes the sentiment of a financial article using an LLM.
+
+    Args:
+        article (str): The financial article text.
+
+    Returns:
+        str: The sentiment analysis JSON from the LLM.
+    """
+    prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article)
+    response=get_basic_ollama_llm_response(model, prompt)
+
+    required_keys = [
+        "primary_entity",
+        "key_information_summary",
+        "sentiment",
+        "sentiment_justification",
+        "recommendation",
+        "recommendation_justification",
+    ]
+
+    max_attempts = 3
+    attempt = 0
+    result_json = None
+
+    while attempt < max_attempts:
+        try:
+            # Try to parse the response directly as JSON, or extract JSON from a string with extra text
+            try:
+                result_json = json.loads(response)
+            except json.JSONDecodeError:
+                # Attempt to extract JSON object from the response string
+                match = re.search(r'\{.*\}', response, re.DOTALL)
+                if match:
+                    json_str = match.group(0)
+                    result_json = json.loads(json_str)
+                else:
+                    raise
+            # Check for required keys (case-insensitive for Symbol/symbol)
+            has_symbol = "Symbol" in result_json or "symbol" in result_json
+            has_required_keys = all(key in result_json for key in required_keys)
+            
+            if has_required_keys and has_symbol:
+                return result_json
+            else:
+                missing_keys = [key for key in required_keys if key not in result_json]
+                if not has_symbol:
+                    missing_keys.append("Symbol/symbol")
+                print(f"Attempt {attempt+1}: Missing required keys: {missing_keys}. Retrying...")
+        except json.JSONDecodeError:
+            print(f"Attempt {attempt+1}: Response is not valid JSON. Retrying...")
+
+        attempt += 1
+        time.sleep(1)
+        response = get_basic_ollama_llm_response(model, prompt)
+
+    print("Failed to get a valid response after 3 attempts.")
+    return None
+
+print(get_article_sentiment_json(article))
