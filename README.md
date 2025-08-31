@@ -1,11 +1,14 @@
 # Algorithmic Trading Utilities
 
-A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo Finance integration. This repository provides utilities for portfolio analytics, data retrieval, visualization, and automated notifications.
+A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo Finance integration. This repository provides utilities for portfolio analytics, data retrieval, order management, position handling, visualization, and automated notifications.
 
 ## Features
 
 - **Portfolio Analytics**: Calculate performance metrics including Sharpe ratio, Sortino ratio, alpha, beta, and maximum drawdown
+- **Order Management**: Place market, limit, and trailing stop orders with comprehensive error handling
+- **Position Management**: Monitor positions, manage trailing stops, and close positions based on thresholds
 - **Data Management**: Historical and real-time data from Alpaca and Yahoo Finance APIs
+- **Quantitative Tools**: Correlation analysis and data preprocessing utilities
 - **Email Notifications**: Automated alerts for trade execution and system events
 - **Yahoo Finance Integration**: Access to market screeners and S&P 500 benchmark data
 - **Visualization Tools**: Time series plotting and portfolio comparison charts
@@ -83,6 +86,80 @@ values_df = get_portfolio_and_benchmark_values()
 print(values_df.tail())
 ```
 
+### Order Management
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.orders import (
+    place_order,
+    get_orders,
+    cancel_orders,
+    place_trailing_stop_order,
+    cancel_order_by_symbol
+)
+
+# Place a market order
+market_order = place_order(
+    symbol="AAPL",
+    quantity=10,
+    side="buy",
+    type="MarketOrderRequest",
+    time_in_force="gtc"
+)
+
+# Place a limit order
+limit_order = place_order(
+    symbol="AAPL",
+    quantity=10,
+    side="buy", 
+    type="LimitOrderRequest",
+    time_in_force="day",
+    limit_price=150.00
+)
+
+# Place a trailing stop order
+trailing_stop = place_trailing_stop_order(
+    symbol="AAPL",
+    quantity=10,
+    side="buy",
+    trail_percent="5"
+)
+
+# Get all open orders
+open_orders = get_orders()
+print(f"Found {len(open_orders)} open orders")
+
+# Cancel all orders
+canceled_count = cancel_orders()
+print(f"Canceled {canceled_count} orders")
+
+# Cancel orders for specific symbol
+cancel_order_by_symbol("AAPL")
+```
+
+### Position Management
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.positions import (
+    get_open_positions,
+    get_positions_without_trailing_stop_loss,
+    close_positions_below_threshold
+)
+from algorithmic_trading_utilities.common.config import loss_threshold
+
+# Get all open positions
+positions = get_open_positions()
+for pos in positions:
+    print(f"Symbol: {pos['symbol']}, Qty: {pos['quantity']}, Side: {pos['side']}")
+
+# Find positions without trailing stop protection
+unprotected = get_positions_without_trailing_stop_loss()
+print(f"Found {len(unprotected)} positions without trailing stops")
+
+# Close losing positions (uses loss_threshold from config)
+closed_count = close_positions_below_threshold(loss_threshold)
+print(f"Closed {closed_count} positions below threshold")
+```
+
 ### Data Retrieval
 
 ```python
@@ -96,11 +173,10 @@ from algorithmic_trading_utilities.data.yfinance_ops import (
     get_sp500_prices,
     get_stock_gainers_table
 )
+from algorithmic_trading_utilities.common.config import trading_client
 from alpaca.data.historical.stock import StockHistoricalDataClient
-from alpaca.trading.client import TradingClient
 
-# Initialize clients
-trading_client = TradingClient("your_key", "your_secret", paper=True)
+# Initialize data client
 data_client = StockHistoricalDataClient("your_key", "your_secret")
 
 # Get available assets
@@ -119,23 +195,28 @@ print(f"AAPL current price: ${current_price}")
 # Get S&P 500 benchmark data
 sp500_data = get_sp500_prices("2024-01-01")
 print(sp500_data.tail())
-```
 
-### Yahoo Finance Market Screening
-
-```python
-from algorithmic_trading_utilities.data.yfinance_ops import get_stock_gainers_table
-
-# Get today's top large-cap gainers (market cap >= $10B)
-# Includes retry logic for rate limiting
+# Get today's top gainers (with retry logic for rate limits)
 gainers_df = get_stock_gainers_table()
 print(f"Found {len(gainers_df)} large-cap gainers today")
-print(gainers_df.head())
+print(gainers_df[['symbol', 'shortName', 'regularMarketChangePercent']].head())
+```
 
-# Available columns:
-# - exchange, symbol, shortName
-# - regularMarketChangePercent
-# - fiftyDayAverageChangePercent
+### Quantitative Analysis
+
+```python
+from algorithmic_trading_utilities.common.quantitative_tools import (
+    remove_highly_correlated_columns
+)
+import pandas as pd
+
+# Remove highly correlated features
+data = {'A': [1, 2, 3, 4, 5], 'B': [2, 3, 4, 5, 6], 'C': [0, 5, 1, 3, 6]}
+df = pd.DataFrame(data)
+
+# Remove columns with correlation > 0.9
+cleaned_df = remove_highly_correlated_columns(df, threshold=0.9)
+print(f"Reduced from {len(df.columns)} to {len(cleaned_df.columns)} columns")
 ```
 
 ### Visualization
@@ -146,10 +227,6 @@ from algorithmic_trading_utilities.common.viz_ops import (
     compare_portfolio_and_benchmark,
     plot_portfolio
 )
-from algorithmic_trading_utilities.common.portfolio_ops import (
-    get_portfolio_and_benchmark_values,
-    get_portfolio_and_benchmark_returns
-)
 
 # Plot portfolio vs benchmark comparison
 comparison_df = get_portfolio_and_benchmark_values()
@@ -157,7 +234,7 @@ compare_portfolio_and_benchmark(comparison_df, "Portfolio vs S&P 500")
 
 # Plot portfolio returns (handles both Series and DataFrame)
 returns_df = get_portfolio_and_benchmark_returns()
-plot_portfolio(returns_df["Portfolio"])  # Handles Series input
+plot_portfolio(returns_df["Portfolio"])
 
 # Plot any time series data
 plot_time_series(comparison_df)
@@ -183,18 +260,6 @@ send_email_notification(
 )
 ```
 
-### Broker Integration
-
-```python
-from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import get_portfolio_history
-
-# Get portfolio history from Alpaca
-portfolio_history = get_portfolio_history()
-equity_values = portfolio_history.equity
-print(f"Current portfolio value: ${equity_values[-1]}")
-print(f"Portfolio equity history: {len(equity_values)} data points")
-```
-
 ## Library Structure
 
 ```
@@ -204,11 +269,15 @@ algorithmic_trading_utilities/
 │   └── yfinance_ops.py      # Yahoo Finance integration
 ├── brokers/
 │   └── alpaca/
-│       └── alpaca_ops.py    # Alpaca portfolio operations
+│       ├── alpaca_ops.py    # Portfolio history operations
+│       ├── orders.py        # Order management
+│       └── positions.py     # Position management
 ├── common/
 │   ├── portfolio_ops.py     # Portfolio analytics
+│   ├── quantitative_tools.py # Data analysis utilities
 │   ├── email_ops.py         # Email notifications
-│   └── viz_ops.py           # Visualization utilities
+│   ├── viz_ops.py           # Visualization utilities
+│   └── config.py            # Configuration and API setup
 └── tests/                   # Comprehensive test suite
 ```
 
@@ -236,6 +305,32 @@ algorithmic_trading_utilities/
 - `get_portfolio_and_benchmark_values()` - Portfolio vs S&P 500 values
 - `get_portfolio_and_benchmark_returns()` - Portfolio vs S&P 500 percentage returns
 
+### Order Management (`brokers.alpaca.orders`)
+
+**Order Placement:**
+- `place_order(symbol, quantity, side, type, time_in_force, **kwargs)` - Place various order types
+- `place_trailing_stop_order(symbol, quantity, side, trail_percent)` - Trailing stops
+
+**Order Retrieval:**
+- `get_orders()` - Get all open orders
+- `get_current_trailing_stop_orders()` - Get active trailing stop orders
+- `get_orders_symbol_list(orders)` - Extract symbols from orders
+- `get_orders_to_cancel()` - Identify non-trailing stop orders
+
+**Order Cancellation:**
+- `cancel_orders()` - Cancel all orders with retry logic
+- `cancel_order_by_symbol(symbol)` - Cancel orders for specific symbol
+
+### Position Management (`brokers.alpaca.positions`)
+
+**Position Retrieval:**
+- `get_open_positions()` - Get all open positions with formatted data
+- `get_positions_without_trailing_stop_loss()` - Find unprotected positions
+- `get_positions_symbol_list(positions)` - Extract symbols from positions
+
+**Position Management:**
+- `close_positions_below_threshold(threshold)` - Close losing positions
+
 ### Data Operations (`data/`)
 
 #### Alpaca Data (`get_data.py`)
@@ -249,6 +344,9 @@ algorithmic_trading_utilities/
 - `get_sp500_prices(start_date)` - S&P 500 benchmark data
 - `get_stock_gainers_table()` - Daily large-cap gainers with retry logic
 
+### Quantitative Tools (`common.quantitative_tools`)
+- `remove_highly_correlated_columns(df, threshold)` - Remove correlated features
+
 ### Visualization (`common.viz_ops`)
 - `plot_time_series(df)` - General time series plotting
 - `compare_portfolio_and_benchmark(df, title)` - Portfolio vs benchmark charts
@@ -257,8 +355,30 @@ algorithmic_trading_utilities/
 ### Email Notifications (`common.email_ops`)
 - `send_email_notification(subject, message, type)` - Gmail SMTP notifications with timestamps
 
-### Broker Integration (`brokers.alpaca.alpaca_ops`)
-- `get_portfolio_history()` - Alpaca portfolio history retrieval
+### Configuration (`common.config`)
+- Trading client setup with paper trading configuration
+- Threshold settings (`loss_threshold`, `trailing_stop_loss_threshold`)
+- API key management with environment variables
+
+## Configuration Variables
+
+**Default Thresholds (from `config.py`):**
+```python
+loss_threshold = 0.05  # 5% loss threshold for closing positions
+trailing_stop_loss_threshold = 0.1  # 10% trailing stop threshold
+```
+
+**Environment Variables Required:**
+```bash
+# Alpaca API (Paper Trading)
+PAPER_KEY="your_alpaca_paper_api_key"
+PAPER_SECRET="your_alpaca_paper_secret_key"
+
+# Email configuration
+web_app_email="your_sender_email@gmail.com"
+web_app_email_password="your_app_password"
+recipient_email="your_recipient_email@gmail.com"
+```
 
 ## Performance Metrics Dictionary
 
@@ -304,27 +424,7 @@ The library provides access to 200+ market screeners including popular ones like
 - `top_etfs` - Top performing ETFs
 - `high_yield_bond` - High-yield bond funds
 
-*Note: `get_stock_gainers_table()` currently uses `day_gainers` filtered for large-cap stocks (market cap >= $10B) with retry logic for rate limiting.*
-
-## Configuration
-
-**Required Environment Variables:**
-```bash
-# Alpaca API (Paper Trading)
-PAPER_KEY="your_alpaca_paper_api_key"
-PAPER_SECRET="your_alpaca_paper_secret_key"
-
-# Email configuration
-web_app_email = "your_sender_email@gmail.com"
-web_app_email_password = "your_app_password"
-recipient_email = "your_recipient_email@gmail.com"
-```
-
-**Default Configuration:**
-- Portfolio history: From 2025-04-08 to present (configurable)
-- Risk-free rate: 2% annual (0.02/252 daily)
-- Historical data: 365 days lookback
-- Email: Gmail SMTP with SSL on port 465
+*Note: `get_stock_gainers_table()` currently uses `day_gainers` filtered for large-cap stocks (market cap >= $10B) with exponential backoff retry logic for rate limiting.*
 
 ## Testing
 
@@ -334,9 +434,12 @@ pytest tests/ -v -s
 ```
 
 **Test Coverage:**
-- `test_portfolio_ops.py` - Portfolio analytics and metrics
+- `test_portfolio_ops.py` - Portfolio analytics and metrics (including alpha/beta)
+- `test_orders.py` - Order management functionality
+- `test_positions.py` - Position management operations
 - `test_get_data.py` - Alpaca data retrieval
 - `test_yfinance_ops.py` - Yahoo Finance operations
+- `test_quantitative_tools.py` - Quantitative analysis utilities
 - `test_viz_ops.py` - Visualization functions
 - `test_email_ops.py` - Email notification system
 
@@ -346,9 +449,11 @@ The library includes robust error handling:
 
 - **Rate Limiting**: Exponential backoff retry logic for Yahoo Finance API
 - **Empty Data**: Graceful handling of empty DataFrames/Series
-- **API Failures**: Defensive programming for network issues
+- **API Failures**: Defensive programming for network issues with APIError handling
 - **Data Type Flexibility**: Functions handle both Series and DataFrame inputs
 - **Missing Data**: Returns appropriate defaults (None, empty DataFrame)
+- **Order Management**: Comprehensive error handling for trading operations
+- **Email Notifications**: Built-in success/failure notification system
 
 ## Risk Disclaimer
 
@@ -382,8 +487,10 @@ For issues and questions:
 
 ## Changelog
 
-- **Current Version**: Added visualization utilities, comprehensive portfolio analytics, and robust error handling
-- **Yahoo Finance**: Market screener integration with rate limiting
-- **Email System**: Gmail SMTP notifications with timestamps
-- **Testing**: Comprehensive test suite with mocking
+- **Current Version**: Added order and position management, quantitative tools, comprehensive error handling
+- **Portfolio Analytics**: Full suite including alpha/beta calculations vs S&P 500
+- **Yahoo Finance**: Market screener integration with rate limiting and retry logic
+- **Email System**: Gmail SMTP notifications with timestamps for trading events
+- **Testing**: Comprehensive test suite with mocking for all modules
+- **Configuration**: Centralized config with environment variable management
 
