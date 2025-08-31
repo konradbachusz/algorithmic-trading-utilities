@@ -14,7 +14,8 @@ import time
 import re
 
 # TODO implement this: https://community.crewai.com/t/connecting-ollama-with-crewai/2222/2
-
+# TODO try: https://huggingface.co/mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis?text=Lilly+Biotechnology+Center+is+shown+in+San+Diego+after+cutting+price+of+insulin%0ALilly+Biotechnology+Center+is+shown+in+San+Diego%2C+California%2C+U.S.+March+1%2C+2023+after+Eli+Lilly+and+Co+on+Wednesday+said+it+will+cut+list+prices+by+70%25+for+its+most+commonly+prescribed+insulin+products%2C+Humalog+and+Humulin%2C+beginning+from+the+fourth+quarter+of+this+year.+REUTERS%2FMike+Blake%2FFile+Photo+Purchase+Licensing+Rights%2C+opens+new+tab%0A%0AListen+to+This+Page%C2%B72+min%0AJune+21+%28Reuters%29+-+Eli+Lilly+%28LLY.N%29%2C+opens+new+tab+said+on+Saturday+its+experimental+pill+orforglipron+helped+diabetics+lose+weight+and+lower+their+blood+sugar%2C+and+the+company+aims+to+announce+in+the+third+quarter+trial+results+for+the+drug+in+overweight+and+obese+people+without+diabetes.%0ALilly+expects+to+submit+the+non-diabetes+Phase+3+data+to+global+regulatory+agencies+by+the+end+of+the+year%2C+said+Ken+Custer%2C+head+of+cardiometabolic+health+at+the+company.+The+U.S.+Food+and+Drug+Administration+typically+makes+new+drug+approval+decisions+10+months+after+a+manufacturer%27s+submission.%0AKeep+up+with+the+latest+medical+breakthroughs+and+healthcare+trends+with+the+Reuters+Health+Rounds+newsletter.+Sign+up+here.%0AAdvertisement+%C2%B7+Scroll+to+continue%0ALilly+said+it+plans+to+file+for+regulatory+approvals+for+orforglipron+as+a+diabetes+treatment+in+2026.%0AFull+results+of+the+diabetes+trial+were+presented+at+the+annual+meeting+of+the+American+Diabetes+Association+in+Chicago.%0AThe+Phase+3+study+showed+that+type+2+diabetes+patients+taking+the+highest+dose+of+daily+orforglipron+lost+nearly+8%25+of+their+body+weight+over+40+weeks.+That+compares+favorably+with+Novo+Nordisk%27s+%28NOVOb.CO%29%2C+opens+new+tab+injected+drug+Ozempic%2C+for+which+trials+showed+that+diabetic+patients+on+the+highest+dose+lost+roughly+6%25+of+their+body+weight.%0ALilly%27s+pill%2C+which+can+be+taken+without+food+or+water%2C+lowered+blood+sugar+levels+by+an+average+of+1.3%25+to+1.6%25+across+doses.%0AAdvertisement+%C2%B7+Scroll+to+continue%0AThe+company+said+the+most+frequently+reported+side+effects+were+gastrointestinal+and+similar+to+other+GLP-1+drugs%2C+including+diarrhea+and+vomiting.%0ACuster+said+Lilly%27s+goal+in+its+non-diabetes+trials+is+to+achieve+weight+loss+consistent+with+GLP-1+drugs+that+are+currently+available.+Ozempic+was+shown+in+trials+to+lead+to+weight+loss+of+15%25+for+people+without+diabetes+over+68+weeks.%0AHe+said+orforglipron%2C+which+has+a+simpler+production+process+than+injected+GLP-1+drugs+such+as+Ozempic+or+Lilly%27s+Zepbound+and+does+not+require+cold+storage%2C+could+mean+wider+global+access+to+weight-loss+drugs.%0A%22This+is+the+type+of+molecule+that+is+going+to+allow+us+to+reach+the+broader+globe%2C%22+Custer+said.%0AThe+executive+declined+to+comment+on+pricing+plans+for+orforglipron.
+#https://colab.research.google.com/#scrollTo=MKTdFkoN_SJU&fileId=https%3A//huggingface.co/mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis.ipynb
 article = """Lilly expects orforglipron obesity results in third quarter
 By Deena Beasley
 June 21, 20252:10 PM GMT+1Updated 3 hours ago
@@ -144,6 +145,9 @@ def get_article_sentiment_json(article: str) -> dict:
         "recommendation_justification",
     ]
 
+    # Valid recommendation values
+    valid_recommendations = ["BUY", "SELL", "HOLD"]
+
     # Try up to 3 times to get a valid response
     for attempt in range(3):
         # Get response from LLM
@@ -171,14 +175,23 @@ def get_article_sentiment_json(article: str) -> dict:
         has_symbol = "Symbol" in result_json or "symbol" in result_json
         has_all_keys = all(key in result_json for key in required_keys)
 
-        if has_all_keys and has_symbol:
+        # Validate recommendation value
+        recommendation_valid = (
+            "recommendation" in result_json and
+            result_json["recommendation"] in valid_recommendations
+        )
+
+        if has_all_keys and has_symbol and recommendation_valid:
             return result_json
         else:
             # Log what's missing for debugging
             missing = [key for key in required_keys if key not in result_json]
             if not has_symbol:
                 missing.append("Symbol/symbol")
-            print(f"Attempt {attempt+1}: Missing keys: {missing}. Retrying...")
+            if not recommendation_valid:
+                rec_value = result_json.get("recommendation", "missing")
+                missing.append(f"Invalid recommendation: '{rec_value}' (must be BUY, SELL, or HOLD)")
+            print(f"Attempt {attempt+1}: Missing/invalid: {missing}. Retrying...")
 
         # Wait before retrying
         time.sleep(1)
@@ -188,4 +201,9 @@ def get_article_sentiment_json(article: str) -> dict:
     return None
 
 
-print(get_article_sentiment_json(article))
+#TODO finish
+response=get_article_sentiment_json(article)
+print(response)
+print(response['primary_entity'])
+print(response['Symbol'])
+print(response['recommendation'])
