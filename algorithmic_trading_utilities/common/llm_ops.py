@@ -10,7 +10,7 @@ except ImportError:
     from algorithmic_trading_utilities.common.prompts import FINANCIAL_ANALYSIS_PROMPT
 
 # TODO implement this: https://community.crewai.com/t/connecting-ollama-with-crewai/2222/2
-# The URL for the API endpoint
+# The URL for the API endpoint #TODO move to config
 url = "http://localhost:11434/api/generate"
 
 article = """Lilly expects orforglipron obesity results in third quarter
@@ -38,75 +38,82 @@ He said orforglipron, which has a simpler production process than injected GLP-1
 "This is the type of molecule that is going to allow us to reach the broader globe," Custer said.
 The executive declined to comment on pricing plans for orforglipron."""
 
-# The data payload for the POST request
-data = {
-    "model": "gemma3:1b",
-    "prompt": FINANCIAL_ANALYSIS_PROMPT.format(article=article),
-}
+model="gemma3:1b"
+prompt=FINANCIAL_ANALYSIS_PROMPT.format(article=article)
 
-try:
-    # Make the POST request with stream=True to process the response in chunks
-    response = requests.post(url, json=data, stream=True)
+def get_basic_llm_response(model, prompt):
+    """
+    Sends a prompt to the LLM API and returns the full text response.
+    Args:
+        model (str): The model name to use.
+        prompt (str): The prompt to send.
+    Returns:
+        str: The concatenated full text response from the LLM.
+    """
+    # The payload for the POST request
+    payload = {
+        "model": model,
+        "prompt": prompt,
+    }
 
-    # Raise an exception for HTTP errors (4xx or 5xx)
-    response.raise_for_status()
+    try:
+        # Make the POST request with stream=True to process the response in chunks. To get a stream of data change stream to True.
+        response = requests.post(url, json=payload, stream=False)
 
-    # Initialize an empty list to store all parsed JSON objects
-    all_response_data = []
-    full_text_response = ""
+        # Raise an exception for HTTP errors (4xx or 5xx)
+        response.raise_for_status()
 
-    # Iterate over the response content line by line
-    print("Request successful! Streaming response:")
-    for line in response.iter_lines():
-        if line:  # Ensure the line is not empty
-            try:
-                # Decode the bytes to a string (usually utf-8)
-                decoded_line = line.decode("utf-8")
+        # Initialize an empty list to store all parsed JSON objects
+        all_response_data = []
+        full_text_response = ""
 
-                # Parse each line as a JSON object
-                json_data = json.loads(decoded_line)
+        # Iterate over the response content line by line
+        print("LLM Request successful!")
+        for line in response.iter_lines():
+            if line:  # Ensure the line is not empty
+                try:
+                    # Decode the bytes to a string (usually utf-8)
+                    decoded_line = line.decode("utf-8")
 
-                all_response_data.append(json_data)
+                    # Parse each line as a JSON object
+                    json_data = json.loads(decoded_line)
 
-                # Ollama often sends a 'response' field in each chunk
-                if "response" in json_data:
-                    print(
-                        json_data["response"], end="", flush=True
-                    )  # Print incrementally
-                    full_text_response += json_data["response"]
-                elif "error" in json_data:
-                    print(f"\nError in streamed chunk: {json_data['error']}")
-                    break  # Stop processing on error
+                    all_response_data.append(json_data)
 
-                # Check for the 'done' flag, indicating the end of the stream
-                if json_data.get("done"):
+                    # Ollama often sends a 'response' field in each chunk
+                    if "response" in json_data:
+                        full_text_response += json_data["response"]
+                    elif "error" in json_data:
+                        print(f"\nError in streamed chunk: {json_data['error']}")
+                        break  # Stop processing on error
+
+                    # Check for the 'done' flag, indicating the end of the stream
+                    if json_data.get("done"):
+                        break
+
+                except json.JSONDecodeError as e:
+                    print(f"\nError decoding JSON from line: {e}")
+                    print(f"Malformed line content: {decoded_line}")
+                    break  # Stop if a line is malformed
+                except Exception as e:
+                    print(f"\nAn unexpected error occurred while processing a line: {e}")
+                    print(f"Line content: {line.decode('utf-8')}")
                     break
 
-            except json.JSONDecodeError as e:
-                print(f"\nError decoding JSON from line: {e}")
-                print(f"Malformed line content: {decoded_line}")
-                break  # Stop if a line is malformed
-            except Exception as e:
-                print(f"\nAn unexpected error occurred while processing a line: {e}")
-                print(f"Line content: {line.decode('utf-8')}")
-                break
+        return full_text_response
 
-    print("\n--- End of Stream ---")
-    print("\nAll captured response data (as a list of JSON objects):")
-    print(
-        json.dumps(all_response_data, indent=2)
-    )  # Pretty print the collected JSON objects
+    except requests.exceptions.ConnectionError as e:
+        print(f"Error: Could not connect to the server at {url}.")
+        print(f"Please ensure the server (e.g., Ollama) is running and accessible.")
+        print(f"Details: {e}")
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"An unexpected request error occurred: {e}")
+    except Exception as e:
+        print(f"An unhandled error occurred: {e}")
+    return None
 
-    print(f"\nFull text response (concatenated): {full_text_response}")
-
-
-except requests.exceptions.ConnectionError as e:
-    print(f"Error: Could not connect to the server at {url}.")
-    print(f"Please ensure the server (e.g., Ollama) is running and accessible.")
-    print(f"Details: {e}")
-except requests.exceptions.HTTPError as e:
-    print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-except requests.exceptions.RequestException as e:
-    print(f"An unexpected request error occurred: {e}")
-except Exception as e:
-    print(f"An unhandled error occurred: {e}")
+print(get_basic_llm_response(model, prompt))
+print("\n")
+print(get_basic_llm_response(model, "What is the capital of Paris? Respond in French"))
