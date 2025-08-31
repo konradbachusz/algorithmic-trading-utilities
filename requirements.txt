@@ -1,4 +1,4 @@
-alpaca-py==0.24.0
+alpaca-py==0.42.1
 pandas==2.0.3
 numpy==1.24.4
 pytest==7.4.4
