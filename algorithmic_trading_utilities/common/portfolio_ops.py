@@ -8,7 +8,7 @@ import pandas as pd
 try:
     from data.yfinance_ops import get_sp500_prices
 except ImportError:
-    from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
+    from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices  # noqa: F401
 
 
 # Try different import approaches for broker modules
@@ -16,276 +16,287 @@ try:
     from brokers.alpaca.alpaca_ops import get_portfolio_history
 except ImportError:
     from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
-        get_portfolio_history,
+        get_portfolio_history,  # noqa: F401
     )
 
-
-def get_average_return(equity):
-    """
-    Calculate the average return from equity data.
-
-    Parameters:
-        equity (list): List of daily equity values.
-
-    Returns:
-        float: Average return.
-    """
-    returns = [
-        (equity[i] - equity[i - 1]) / equity[i - 1] for i in range(1, len(equity))
-    ]
-    return np.mean(returns)
+from scipy.stats import skew, kurtosis
+from sklearn.linear_model import LinearRegression
 
 
-def get_total_return(equity):
-    """
-    Calculate the total return from equity data.
+class PerformanceMetrics:
+    """Performance Metrics Computation Module."""
 
-    Parameters:
-        equity (list): List of daily equity values.
+    def __init__(
+        self,
+        portfolio_equity: np.ndarray,
+        benchmark_equity: np.ndarray = None,
+        risk_free_rate=0.02 / 252,
+    ):
+        """
+        Initialize performance metrics calculator.
 
-    Returns:
-        float: Total return percentage.
-    """
-    return round(((equity[-1] - equity[0]) / equity[0]) * 100, 2)
+        Parameters:
+        -----------
+        portfolio_equity : np.ndarray
+            Daily portfolio equity values.
+        benchmark_equity : np.ndarray, optional
+            Daily benchmark equity values (for alpha/beta), default None.
+        risk_free_rate : float
+            Daily risk-free rate.
+        """
+        self.portfolio = np.array(portfolio_equity)
+        self.benchmark = (
+            np.array(benchmark_equity) if benchmark_equity is not None else None
+        )
+        self.risk_free_rate = risk_free_rate
+        self.returns = self._daily_returns(self.portfolio)
+        self.benchmark_returns = (
+            self._daily_returns(self.benchmark) if self.benchmark is not None else None
+        )
 
+    @staticmethod
+    def _daily_returns(equity: np.ndarray) -> np.ndarray:
+        if equity is None or len(equity) < 2:
+            return np.array([])
+        return np.diff(equity) / equity[:-1]
 
-def get_cumulative_return(equity):
-    """
-    Calculate the cumulative return from equity data.
+    # region - Basic Metrics & Ratios
 
-    Parameters:
-        equity (list): List of daily equity values.
+    def average_return(self) -> float:
+        return np.mean(self.returns)
 
-    Returns:
-        float: Cumulative return percentage.
-    """
-    return round(((equity[-1] - equity[0]) / equity[0]) * 100, 2)
+    def total_return(self) -> float:
+        return self.portfolio[-1] / self.portfolio[0] - 1
 
+    def std_dev(self) -> float:
+        return np.std(self.returns)
 
-def get_std_dev(equity):
-    """
-    Calculate the standard deviation of returns from equity data.
+    def sharpe_ratio(self) -> float:
+        return (self.average_return() - self.risk_free_rate) / self.std_dev()
 
-    Parameters:
-        equity (list): List of daily equity values.
+    def annualised_sharpe(self) -> float:
+        return self.sharpe_ratio() * np.sqrt(252)
 
-    Returns:
-        float: Standard deviation of returns.
-    """
-    returns = [
-        (equity[i] - equity[i - 1]) / equity[i - 1] for i in range(1, len(equity))
-    ]
-    return np.std(returns)
+    def downside_std(self) -> float:
+        downside = self.returns[self.returns < 0]
+        return np.std(downside) if len(downside) > 0 else 0.0
 
+    def sortino_ratio(self) -> float:
+        dr = self.downside_std()
+        return (self.average_return() - self.risk_free_rate) / dr if dr > 0 else np.nan
 
-def get_sharpe_ratio(average_return, std_dev, risk_free_rate=0.02 / 252):
-    """
-    Calculate the Sharpe ratio.
+    def annualised_sortino(self) -> float:
+        return self.sortino_ratio() * np.sqrt(252)
 
-    Parameters:
-        average_return (float): Average return.
-        std_dev (float): Standard deviation of returns.
-        risk_free_rate (float): Daily risk-free rate.
+    def calmar_ratio(self) -> float:
+        dd = self.max_drawdown()
+        return self.average_return() * 252 / dd if dd > 0 else np.nan
 
-    Returns:
-        float: Sharpe ratio.
-    """
-    return (average_return - risk_free_rate) / std_dev
+    # end region
 
+    # region - Drawdowns
+    def drawdown_series(self) -> np.ndarray:
+        cum_max = np.maximum.accumulate(self.portfolio)
+        return (cum_max - self.portfolio) / cum_max
 
-def get_annualised_sharpe_ratio(sharpe_ratio):
-    """
-    Calculate the annualised Sharpe ratio.
+    def max_drawdown(self) -> float:
+        return np.max(self.drawdown_series())
 
-    Parameters:
-        sharpe_ratio (float): Sharpe ratio.
+    def average_drawdown(self) -> float:
+        return np.mean(self.drawdown_series())
 
-    Returns:
-        float: Annualised Sharpe ratio.
-    """
-    return sharpe_ratio * (252**0.5)
+    def drawdown_duration(self) -> int:
+        dd = self.drawdown_series()
+        duration = 0
+        max_duration = 0
+        for d in dd:
+            if d > 0:
+                duration += 1
+                max_duration = max(max_duration, duration)
+            else:
+                duration = 0
+        return max_duration
 
+    # end region
 
-def get_sortino_ratio(average_return, downside_deviation, risk_free_rate=0.02 / 252):
-    """
-    Calculate the Sortino ratio.
+    # region - Return distribution
+    def return_distribution_stats(self, alpha=0.05) -> dict:
+        r = self.returns
+        return {
+            "skewness": skew(r),
+            "kurtosis": kurtosis(r),
+            "VaR": np.percentile(r, 100 * alpha),
+            "CVaR": np.mean(r[r <= np.percentile(r, 100 * alpha)]),
+        }
 
-    Parameters:
-        average_return (float): Average return.
-        downside_deviation (float): Downside deviation of returns.
-        risk_free_rate (float): Daily risk-free rate.
+    # end region
 
-    Returns:
-        float: Sortino ratio.
-    """
-    return (average_return - risk_free_rate) / downside_deviation
+    # region - Alpha & Beta
+    def alpha_beta(self) -> dict:
+        if self.benchmark_returns is None or len(self.benchmark_returns) != len(
+            self.returns
+        ):
+            return {"alpha": np.nan, "beta": np.nan}
 
+        y = self.returns - self.risk_free_rate
+        X = self.benchmark_returns - self.risk_free_rate
+        model = LinearRegression().fit(X.reshape(-1, 1), y.reshape(-1, 1))
+        return {"alpha": model.intercept_[0], "beta": model.coef_[0][0]}
 
-def get_annualised_sortino_ratio(sortino_ratio):
-    """
-    Calculate the annualised Sortino ratio.
+    def rolling_alpha_beta(self, window=252) -> pd.DataFrame:
+        if self.benchmark_returns is None or len(self.benchmark_returns) < window:
+            return pd.DataFrame(columns=["alpha", "beta"])
 
-    Parameters:
-        sortino_ratio (float): Sortino ratio.
+        alphas, betas = [], []
+        for i in range(len(self.returns) - window + 1):
+            y = self.returns[i : i + window] - self.risk_free_rate
+            X = self.benchmark_returns[i : i + window] - self.risk_free_rate
+            model = LinearRegression().fit(X.reshape(-1, 1), y.reshape(-1, 1))
+            alphas.append(model.intercept_[0])
+            betas.append(model.coef_[0][0])
 
-    Returns:
-        float: Annualised Sortino ratio.
-    """
-    return sortino_ratio * (252**0.5)
+        index = np.arange(window - 1, len(self.returns))
+        return pd.DataFrame({"alpha": alphas, "beta": betas}, index=index)
 
+    # end region
 
-def get_max_drawdown(equity):
-    """
-    Calculate the maximum drawdown from equity data.
+    # region - Aggregate all metrics for Strategy & Benchmark
+    def calculate_all(self) -> dict:
+        """
+        Aggregate all performance metrics into a single dictionary.
+        """
+        dist_stats = self.return_distribution_stats()
+        metrics = {
+            "average_return": self.average_return(),
+            "total_return": self.total_return(),
+            "std_dev": self.std_dev(),
+            "sharpe_ratio": self.sharpe_ratio(),
+            "annualised_sharpe": self.annualised_sharpe(),
+            "sortino_ratio": self.sortino_ratio(),
+            "annualised_sortino": self.annualised_sortino(),
+            "max_drawdown": self.max_drawdown(),
+            "average_drawdown": self.average_drawdown(),
+            "drawdown_duration": self.drawdown_duration(),
+            "skewness": dist_stats["skewness"],
+            "kurtosis": dist_stats["kurtosis"],
+            "VaR_5%": dist_stats["VaR"],
+            "CVaR_5%": dist_stats["CVaR"],
+            "calmar_ratio": self.calmar_ratio(),
+        }
+        metrics.update(self.alpha_beta())
+        return metrics
 
-    Parameters:
-        equity (list): List of daily equity values.
+    def calculate_benchmark_metrics(self) -> dict:
+        """
+        Compute performance metrics for the benchmark.
+        Requires benchmark equity to be provided.
+        """
+        if self.benchmark is None:
+            return {k: float("nan") for k in self.calculate_all().keys()}
 
-    Returns:
-        float: Maximum drawdown.
-    """
-    drawdowns = [
-        (max(equity[: i + 1]) - equity[i]) / max(equity[: i + 1])
-        for i in range(len(equity))
-    ]
-    return max(drawdowns)
+        benchmark_pm = PerformanceMetrics(
+            portfolio_equity=self.benchmark,
+            benchmark_equity=None,
+            risk_free_rate=self.risk_free_rate,
+        )
+        bm_metrics = benchmark_pm.calculate_all()
+        bm_metrics.update({"alpha": 0, "beta": 1})
+        return bm_metrics
 
+    # end region
 
-def get_alpha(portfolio_returns, benchmark_returns, risk_free_rate=0.02 / 252):
-    """
-    Calculate the alpha of the portfolio.
+    # region - Report Strategy metrics & benchmarking
 
-    Parameters:
-        portfolio_returns (list): List of portfolio daily returns.
-        benchmark_returns (list): List of benchmark daily returns.
-        risk_free_rate (float): Daily risk-free rate.
+    def report(self):
+        """
+        Print a formatted table comparing strategy vs benchmark metrics.
+        """
+        if self.benchmark is None:
+            print("Benchmark equity not provided. Cannot generate comparison report.")
+            return
 
-    Returns:
-        float: Alpha value.
-    """
-    portfolio_excess = np.mean(portfolio_returns) - risk_free_rate
-    benchmark_excess = np.mean(benchmark_returns) - risk_free_rate
-    beta = np.cov(portfolio_returns, benchmark_returns)[0, 1] / np.var(
-        benchmark_returns
-    )
-    return portfolio_excess - beta * benchmark_excess
+        # Calculate metrics
+        strategy_metrics = self.calculate_all()
 
+        # Temporary swap portfolio with benchmark to calculate benchmark metrics
+        original_portfolio = self.portfolio
+        original_returns = self.returns
+        self.portfolio = self.benchmark
+        self.returns = self.benchmark_returns
+        benchmark_metrics = self.calculate_benchmark_metrics()
+        # Restore original portfolio
+        self.portfolio = original_portfolio
+        self.returns = original_returns
 
-def get_beta(portfolio_returns, benchmark_returns):
-    """
-    Calculate the beta of the portfolio.
+        print()
+        span = 54
+        len_title = len("Strategy vs Benchmark Performance Comparison")
+        remainder = span - len_title
+        print("=" * span)
+        print(
+            " " * ((remainder) // 2)
+            + "Strategy vs Benchmark Performance Comparison"
+            + " " * (remainder // 2)
+        )
+        print("=" * span)
 
-    Parameters:
-        portfolio_returns (list): List of portfolio daily returns.
-        benchmark_returns (list): List of benchmark daily returns.
+        label_width, value_width, market_width = 25, 12, 12
+        print(
+            f"{'':{label_width}} {'Strategy':>{value_width}} {'Benchmark':>{market_width}}"
+        )
+        print("-" * span)
 
-    Returns:
-        float: Beta value.
-    """
-    return np.cov(portfolio_returns, benchmark_returns)[0, 1] / np.var(
-        benchmark_returns
-    )
-
-
-# TODO unit test
-def get_portfolio_and_benchmark_values():
-    """
-    Create a DataFrame with columns 'Benchmark' (S&P 500 prices) and 'Portfolio' (portfolio equity),
-    aligned by date index (using the index from benchmark_df only).
-
-    Returns:
-        pd.DataFrame: DataFrame with 'Benchmark' and 'Portfolio' columns.
-    """
-
-    # Get S&P 500 prices and portfolio equity
-    benchmark_df = get_sp500_prices("2025-04-08")  # TODO move out as a parameter
-    # Defensive: handle empty or failed download from yfinance
-    if benchmark_df is None or benchmark_df.empty:
-        # Return empty DataFrame with correct columns and no rows
-        return pd.DataFrame(columns=["Benchmark", "Portfolio"])
-
-    portfolio_history = get_portfolio_history()
-    equity = portfolio_history.equity
-
-    # Use the only column in benchmark_df as Benchmark
-    if isinstance(benchmark_df, pd.DataFrame) and benchmark_df.shape[1] == 1:
-        benchmark_series = benchmark_df.iloc[:, 0]
-    else:
-        benchmark_series = benchmark_df.squeeze()
-    benchmark_series.name = "Benchmark"
-
-    # Align lengths: use the minimum length of benchmark and equity
-    min_len = min(len(benchmark_series), len(equity))
-    aligned_benchmark = benchmark_series.iloc[:min_len]
-    aligned_equity = pd.Series(
-        equity[:min_len], index=aligned_benchmark.index, name="Portfolio"
-    )
-
-    df = pd.DataFrame({"Benchmark": aligned_benchmark, "Portfolio": aligned_equity})
-
-    return df
-
-
-# TODO unit test
-def get_portfolio_and_benchmark_returns():
-    """
-    Calculate the percentage change for both 'Benchmark' and 'Portfolio' columns
-    using the formula: (Ending Price - Beginning Price) / Beginning Price * 100.
-
-    Returns:
-        pd.DataFrame: DataFrame with percentage changes, same index and columns.
-    """
-    df = get_portfolio_and_benchmark_values()
-    pct_change_df = (df - df.iloc[0]) / df.iloc[0] * 100
-    pct_change_df.columns = df.columns
-    return pct_change_df
-
-
-def calculate_performance_metrics():
-    """
-    Calculate all performance metrics and return them as a dictionary.
-
-    Returns:
-        dict: Dictionary containing all performance metrics.
-    """
-    portfolio_history = get_portfolio_history()
-    equity = portfolio_history.equity
-
-    average_return = get_average_return(equity)
-    total_return = get_total_return(equity)
-    cumulative_return = get_cumulative_return(equity)
-    std_dev = get_std_dev(equity)
-    sharpe_ratio = get_sharpe_ratio(average_return, std_dev)
-    annual_sharpe_ratio = get_annualised_sharpe_ratio(sharpe_ratio)
-    downside_returns = [
-        r
-        for r in [
-            (equity[i] - equity[i - 1]) / equity[i - 1] for i in range(1, len(equity))
+        # List of metrics to display
+        metrics_list = [
+            ("Sharpe Ratio:", "sharpe_ratio"),
+            ("Sortino Ratio:", "sortino_ratio"),
+            ("Cumulative Return:", "total_return"),
+            ("Max Drawdown:", "max_drawdown"),
+            ("Average Drawdown:", "average_drawdown"),
+            ("Drawdown Duration:", "drawdown_duration"),
+            ("Skewness:", "skewness"),
+            ("Kurtosis:", "kurtosis"),
+            ("VaR 5%:", "VaR_5%"),
+            ("CVaR 5%:", "CVaR_5%"),
+            ("Calmar Ratio:", "calmar_ratio"),
+            ("Alpha:", "alpha"),
+            ("Beta:", "beta"),
         ]
-        if r < 0
-    ]
-    downside_deviation = np.std(downside_returns)
-    sortino_ratio = get_sortino_ratio(average_return, downside_deviation)
-    annual_sortino_ratio = get_annualised_sortino_ratio(sortino_ratio)
-    max_drawdown = get_max_drawdown(equity)
 
-    # Calculate daily returns for the S&P 500
-    portfolio_vs_benchmark_df = get_portfolio_and_benchmark_returns()
-    benchmark_returns = portfolio_vs_benchmark_df["Benchmark"]
-    portfolio_returns = portfolio_vs_benchmark_df["Portfolio"]
-    alpha = get_alpha(portfolio_returns, benchmark_returns)
-    beta = get_beta(portfolio_returns, benchmark_returns)
+        for label, key in metrics_list:
+            strat_val = strategy_metrics.get(key, float("nan"))
+            bench_val = benchmark_metrics.get(key, float("nan"))
+            # Format percentages
+            if (
+                "Return" in label
+                or " Drawdown" in label
+                or "VaR" in label
+                or "CVaR" in label
+                or "Alpha" in label
+            ):
+                strat_val_fmt = f"{strat_val:.2%}" if strat_val is not None else "N/A"
+                bench_val_fmt = f"{bench_val:.2%}" if bench_val is not None else "N/A"
+            elif "Drawdown Duration" in label:
+                strat_val_fmt = f"{strat_val}" if strat_val is not None else "N/A"
+                bench_val_fmt = f"{bench_val}" if bench_val is not None else "N/A"
+            else:
+                strat_val_fmt = f"{strat_val:.2f}" if strat_val is not None else "N/A"
+                bench_val_fmt = f"{bench_val:.2f}" if bench_val is not None else "N/A"
 
-    return {
-        "average_return": average_return,
-        "total_return": total_return,
-        "cumulative_return": cumulative_return,
-        "std_dev": std_dev,
-        "sharpe_ratio": sharpe_ratio,
-        "annual_sharpe_ratio": annual_sharpe_ratio,
-        "sortino_ratio": sortino_ratio,
-        "annual_sortino_ratio": annual_sortino_ratio,
-        "max_drawdown": max_drawdown,
-        "alpha": alpha,
-        "beta": beta,
-    }
+            print(
+                f"\n{label:{label_width}} {strat_val_fmt:>{value_width}} {bench_val_fmt:>{market_width}}"
+            )
+
+        print("\n" + "=" * span)
+
+    # end region
+
+
+# region - Use Example
+
+# metrics = PerformanceMetrics(portfolio_equity, benchmark_equity)
+# strategy_metrics = metrics.calculate_all()
+# benchmark_metrics = metrics.calculate_benchmark_metrics()  # new method for benchmark
+# metrics.report()
+
+# end region
