@@ -10,7 +10,6 @@ try:
 except ImportError:
     from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices  # noqa: F401
 
-
 # Try different import approaches for broker modules
 try:
     from brokers.alpaca.alpaca_ops import get_portfolio_history
@@ -35,14 +34,11 @@ class PerformanceMetrics:
         """
         Initialize performance metrics calculator.
 
-        Parameters:
-        -----------
-        portfolio_equity : np.ndarray
-            Daily portfolio equity values.
-        benchmark_equity : np.ndarray, optional
-            Daily benchmark equity values (for alpha/beta), default None.
-        risk_free_rate : float
-            Daily risk-free rate.
+        Args:
+            portfolio_equity (np.ndarray): Daily portfolio equity values.
+            benchmark_equity (np.ndarray, optional): Daily benchmark equity values.
+                If provided, enables alpha/beta calculations. Defaults to None.
+            risk_free_rate (float, optional): Daily risk-free rate. Defaults to 0.02/252.
         """
         self.portfolio = np.array(portfolio_equity)
         self.benchmark = (
@@ -56,71 +52,157 @@ class PerformanceMetrics:
 
     @staticmethod
     def _daily_returns(equity: np.ndarray) -> np.ndarray:
+        """
+        Compute daily returns from equity curve.
+
+        Args:
+            equity (np.ndarray): Array of equity values.
+
+        Returns:
+            np.ndarray: Array of daily returns.
+        """
         if equity is None or len(equity) < 2:
             return np.array([])
         return np.diff(equity) / equity[:-1]
 
-    # region - Basic Metrics & Ratios
-
     def average_return(self) -> float:
+        """
+        Compute average daily return.
+
+        Returns:
+            float: Mean of daily returns.
+        """
         return np.mean(self.returns)
 
     def total_return(self) -> float:
+        """
+        Compute cumulative portfolio return.
+
+        Returns:
+            float: Total return from start to end.
+        """
         return self.portfolio[-1] / self.portfolio[0] - 1
 
     def std_dev(self) -> float:
+        """
+        Compute standard deviation of returns.
+
+        Returns:
+            float: Standard deviation of daily returns.
+        """
         return np.std(self.returns)
 
     def sharpe_ratio(self) -> float:
+        """
+        Compute daily Sharpe ratio.
+
+        Returns:
+            float: Sharpe ratio value.
+        """
         return (self.average_return() - self.risk_free_rate) / self.std_dev()
 
     def annualised_sharpe(self) -> float:
+        """
+        Compute annualised Sharpe ratio.
+
+        Returns:
+            float: Annualised Sharpe ratio.
+        """
         return self.sharpe_ratio() * np.sqrt(252)
 
     def downside_std(self) -> float:
+        """
+        Compute downside deviation of returns.
+
+        Returns:
+            float: Standard deviation of negative returns.
+        """
         downside = self.returns[self.returns < 0]
         return np.std(downside) if len(downside) > 0 else 0.0
 
     def sortino_ratio(self) -> float:
+        """
+        Compute Sortino ratio.
+
+        Returns:
+            float: Sortino ratio value.
+        """
         dr = self.downside_std()
         return (self.average_return() - self.risk_free_rate) / dr if dr > 0 else np.nan
 
     def annualised_sortino(self) -> float:
+        """
+        Compute annualised Sortino ratio.
+
+        Returns:
+            float: Annualised Sortino ratio.
+        """
         return self.sortino_ratio() * np.sqrt(252)
 
     def calmar_ratio(self) -> float:
+        """
+        Compute Calmar ratio.
+
+        Returns:
+            float: Calmar ratio (annual return / max drawdown).
+        """
         dd = self.max_drawdown()
         return self.average_return() * 252 / dd if dd > 0 else np.nan
 
-    # end region
-
-    # region - Drawdowns
     def drawdown_series(self) -> np.ndarray:
+        """
+        Compute drawdown series.
+
+        Returns:
+            np.ndarray: Array of drawdown values (fractions).
+        """
         cum_max = np.maximum.accumulate(self.portfolio)
         return (cum_max - self.portfolio) / cum_max
 
     def max_drawdown(self) -> float:
+        """
+        Compute maximum drawdown.
+
+        Returns:
+            float: Maximum drawdown (fraction).
+        """
         return np.max(self.drawdown_series())
 
     def average_drawdown(self) -> float:
+        """
+        Compute average drawdown.
+
+        Returns:
+            float: Mean drawdown (fraction).
+        """
         return np.mean(self.drawdown_series())
 
     def drawdown_duration(self) -> int:
+        """
+        Compute maximum drawdown duration in days.
+
+        Returns:
+            int: Longest duration of continuous drawdown.
+        """
         dd = self.drawdown_series()
-        duration = 0
-        max_duration = 0
-        for d in dd:
-            if d > 0:
-                duration += 1
-                max_duration = max(max_duration, duration)
-            else:
-                duration = 0
-        return max_duration
+        is_dd = (dd > 0).astype(int)
 
-    # end region
+        cumsum = np.cumsum(is_dd)
+        cumsum *= is_dd
+        _, counts = np.unique(cumsum, return_counts=True)
 
-    # region - Return distribution
+        return counts.max() if counts.size > 0 else 0
+
     def return_distribution_stats(self, alpha=0.05) -> dict:
+        """
+        Compute return distribution statistics.
+
+        Args:
+            alpha (float, optional): Quantile for VaR/CVaR. Defaults to 0.05.
+
+        Returns:
+            dict: Dictionary with skewness, kurtosis, VaR, and CVaR.
+        """
         r = self.returns
         return {
             "skewness": skew(r),
@@ -129,10 +211,13 @@ class PerformanceMetrics:
             "CVaR": np.mean(r[r <= np.percentile(r, 100 * alpha)]),
         }
 
-    # end region
-
-    # region - Alpha & Beta
     def alpha_beta(self) -> dict:
+        """
+        Compute CAPM alpha and beta against benchmark.
+
+        Returns:
+            dict: Dictionary with alpha and beta values.
+        """
         if self.benchmark_returns is None or len(self.benchmark_returns) != len(
             self.returns
         ):
@@ -144,6 +229,15 @@ class PerformanceMetrics:
         return {"alpha": model.intercept_[0], "beta": model.coef_[0][0]}
 
     def rolling_alpha_beta(self, window=252) -> pd.DataFrame:
+        """
+        Compute rolling alpha and beta values.
+
+        Args:
+            window (int, optional): Rolling window size. Defaults to 252.
+
+        Returns:
+            pd.DataFrame: DataFrame with rolling alpha and beta.
+        """
         if self.benchmark_returns is None or len(self.benchmark_returns) < window:
             return pd.DataFrame(columns=["alpha", "beta"])
 
@@ -158,12 +252,12 @@ class PerformanceMetrics:
         index = np.arange(window - 1, len(self.returns))
         return pd.DataFrame({"alpha": alphas, "beta": betas}, index=index)
 
-    # end region
-
-    # region - Aggregate all metrics for Strategy & Benchmark
     def calculate_all(self) -> dict:
         """
-        Aggregate all performance metrics into a single dictionary.
+        Aggregate all performance metrics.
+
+        Returns:
+            dict: Dictionary of performance metrics.
         """
         dist_stats = self.return_distribution_stats()
         metrics = {
@@ -189,7 +283,9 @@ class PerformanceMetrics:
     def calculate_benchmark_metrics(self) -> dict:
         """
         Compute performance metrics for the benchmark.
-        Requires benchmark equity to be provided.
+
+        Returns:
+            dict: Benchmark metrics dictionary.
         """
         if self.benchmark is None:
             return {k: float("nan") for k in self.calculate_all().keys()}
@@ -203,13 +299,11 @@ class PerformanceMetrics:
         bm_metrics.update({"alpha": 0, "beta": 1})
         return bm_metrics
 
-    # end region
-
-    # region - Report Strategy metrics & benchmarking
-
     def report(self):
         """
-        Print a formatted table comparing strategy vs benchmark metrics.
+        Print a formatted performance comparison table.
+
+        Displays strategy vs benchmark metrics.
         """
         if self.benchmark is None:
             print("Benchmark equity not provided. Cannot generate comparison report.")
@@ -228,16 +322,12 @@ class PerformanceMetrics:
         self.portfolio = original_portfolio
         self.returns = original_returns
 
-        print()
+        title = "Strategy vs Benchmark Performance Comparison"
         span = 54
-        len_title = len("Strategy vs Benchmark Performance Comparison")
+        len_title = len(title)
         remainder = span - len_title
         print("=" * span)
-        print(
-            " " * ((remainder) // 2)
-            + "Strategy vs Benchmark Performance Comparison"
-            + " " * (remainder // 2)
-        )
+        print(" " * ((remainder) // 2) + title + " " * (remainder // 2))
         print("=" * span)
 
         label_width, value_width, market_width = 25, 12, 12
@@ -246,7 +336,6 @@ class PerformanceMetrics:
         )
         print("-" * span)
 
-        # List of metrics to display
         metrics_list = [
             ("Sharpe Ratio:", "sharpe_ratio"),
             ("Sortino Ratio:", "sortino_ratio"),
@@ -288,15 +377,3 @@ class PerformanceMetrics:
             )
 
         print("\n" + "=" * span)
-
-    # end region
-
-
-# region - Use Example
-
-# metrics = PerformanceMetrics(portfolio_equity, benchmark_equity)
-# strategy_metrics = metrics.calculate_all()
-# benchmark_metrics = metrics.calculate_benchmark_metrics()  # new method for benchmark
-# metrics.report()
-
-# end region
