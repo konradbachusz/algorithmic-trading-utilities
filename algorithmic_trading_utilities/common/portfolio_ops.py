@@ -4,19 +4,19 @@ sys.path.insert(1, "algorithmic_trading_utilities")
 import numpy as np
 import pandas as pd
 
-# Try different import approaches for data modules
-try:
-    from data.yfinance_ops import get_sp500_prices
-except ImportError:
-    from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices  # noqa: F401
+# # Try different import approaches for data modules
+# try:
+#     from data.yfinance_ops import get_sp500_prices
+# except ImportError:
+#     from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices  # noqa: F401
 
-# Try different import approaches for broker modules
-try:
-    from brokers.alpaca.alpaca_ops import get_portfolio_history
-except ImportError:
-    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
-        get_portfolio_history,  # noqa: F401
-    )
+# # Try different import approaches for broker modules
+# try:
+#     from brokers.alpaca.alpaca_ops import get_portfolio_history
+# except ImportError:
+#     from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
+#         get_portfolio_history,  # noqa: F401
+#     )
 
 from scipy.stats import skew, kurtosis
 from sklearn.linear_model import LinearRegression
@@ -179,19 +179,25 @@ class PerformanceMetrics:
 
     def drawdown_duration(self) -> int:
         """
-        Compute maximum drawdown duration in days.
+        Compute maximum drawdown duration in days using a vectorized approach.
 
         Returns:
             int: Longest duration of continuous drawdown.
         """
         dd = self.drawdown_series()
-        is_dd = (dd > 0).astype(int)
 
-        cumsum = np.cumsum(is_dd)
-        cumsum *= is_dd
-        _, counts = np.unique(cumsum, return_counts=True)
+        if dd.size == 0:
+            return 0
+        
+        is_drawdown = dd > 0
+        boundaries = np.diff(np.concatenate(([False], is_drawdown, [False])))
 
-        return counts.max() if counts.size > 0 else 0
+        run_locations = np.where(boundaries)[0]
+
+        
+        drawdown_lengths = run_locations[1::2] - run_locations[0::2]
+
+        return np.max(drawdown_lengths, initial=0)
 
     def return_distribution_stats(self, alpha=0.05) -> dict:
         """
