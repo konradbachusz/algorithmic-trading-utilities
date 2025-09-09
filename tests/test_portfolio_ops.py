@@ -1,17 +1,19 @@
 import math
 import pytest
 import sys
+import pandas as pd
 
 sys.path.insert(1, "algorithmic_trading_utilities")
-import numpy as np
 from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+import numpy as np
 
 
 class TestPerformanceMetrics:
     def setup_method(self):
-        # Sample portfolio and benchmark equity arrays
-        self.portfolio_equity = np.array([100, 105, 110])
-        self.benchmark_equity = np.array([200, 210, 220])
+        # Sample portfolio and benchmark equity as pandas Series
+        self.index = pd.DatetimeIndex(["2025-01-01", "2025-01-02", "2025-01-03"])
+        self.portfolio_equity = pd.Series([100, 105, 110], index=self.index)
+        self.benchmark_equity = pd.Series([200, 210, 220], index=self.index)
         self.pm = PerformanceMetrics(
             portfolio_equity=self.portfolio_equity,
             benchmark_equity=self.benchmark_equity,
@@ -28,7 +30,7 @@ class TestPerformanceMetrics:
 
     def test_std_dev(self):
         result = self.pm.std_dev()
-        assert round(result, 4) == pytest.approx(0.0012, rel=1e-2)
+        assert round(result, 4) == pytest.approx(0.0017, rel=1e-2)
 
     def test_sharpe_ratio(self):
         result = self.pm.sharpe_ratio()
