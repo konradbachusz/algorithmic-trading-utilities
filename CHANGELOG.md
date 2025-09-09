@@ -9,24 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Additions
-
-- Added a visualization module for portfolio performance, including rolling alpha & beta plots.
-
-### Updates
-
-- None
-
-### Deprecations
-
-- Old version of `viz_ops.py`.
-
-### Contributors to this release
-
-- Yosri Ben Halima
-
----
-
 ## [0.1.0] - 2025-09-09
 
 ### Additions
@@ -37,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for core metrics included.
 - Modular benchmark parameterization; SP500 can now be used as default if benchmark data is not provided.
 - Added `Benchmark_Interpretation.md` with clear, concise explanations for all metrics.
+- Added a visualization module for portfolio performance, including rolling alpha & beta plots.
 
 ### Updates
 
@@ -47,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecations
 
 - Older version of `portfolio_ops.py`.
+- Old version of `viz_ops.py`.
 
 ### Contributors to this release
 
