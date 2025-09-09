@@ -63,22 +63,44 @@ class TestPerformanceMetrics:
 
     def test_drawdown_duration(self):
         result = self.pm.drawdown_duration()
-        assert isinstance(result, int)
+        assert result == 0
 
-    def test_return_distribution_stats(self):
+    def test_return_distribution_stats_contains_skewness(self):
         stats = self.pm.return_distribution_stats(alpha=0.05)
         assert "skewness" in stats
+
+    def test_return_distribution_stats_contains_kurtosis(self):
+        stats = self.pm.return_distribution_stats(alpha=0.05)
         assert "kurtosis" in stats
+
+    def test_return_distribution_stats_contains_VaR(self):
+        stats = self.pm.return_distribution_stats(alpha=0.05)
         assert "VaR" in stats
+
+    def test_return_distribution_stats_contains_CVaR(self):
+        stats = self.pm.return_distribution_stats(alpha=0.05)
         assert "CVaR" in stats
 
-    def test_alpha_beta(self):
+    def test_alpha_beta_contains_alpha(self):
         ab = self.pm.alpha_beta()
         assert "alpha" in ab
+
+    def test_alpha_beta_contains_beta(self):
+        ab = self.pm.alpha_beta()
         assert "beta" in ab
-        # Check types
+
+    def test_alpha_beta_values_are_float(self):
+        ab = self.pm.alpha_beta()
         assert isinstance(ab["alpha"], float)
         assert isinstance(ab["beta"], float)
+
+    def test_calculate_benchmark_metrics_alpha(self):
+        bm_metrics = self.pm.calculate_benchmark_metrics()
+        assert bm_metrics["alpha"] == 0
+
+    def test_calculate_benchmark_metrics_beta(self):
+        bm_metrics = self.pm.calculate_benchmark_metrics()
+        assert bm_metrics["beta"] == 1
 
     def test_calculate_all(self):
         metrics = self.pm.calculate_all()
@@ -103,11 +125,6 @@ class TestPerformanceMetrics:
         ]
         for key in keys_expected:
             assert key in metrics
-
-    def test_calculate_benchmark_metrics(self):
-        bm_metrics = self.pm.calculate_benchmark_metrics()
-        assert "alpha" in bm_metrics and bm_metrics["alpha"] == 0
-        assert "beta" in bm_metrics and bm_metrics["beta"] == 1
 
     def test_report_runs(self):
         # Just ensure report() runs without error
