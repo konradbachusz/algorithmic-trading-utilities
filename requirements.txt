@@ -13,3 +13,5 @@ alpaca-trade-api==3.2.0
 python-dotenv==1.0.0
 multitasking==0.0.11
 yfinance==0.1.66 #TODO fix this error to make it work with more recent version
+scikit-learn==1.7.1
+scipy==1.15.3
