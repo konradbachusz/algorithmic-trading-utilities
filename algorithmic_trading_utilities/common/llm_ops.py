@@ -203,7 +203,7 @@ def get_article_sentiment_json(article: str) -> dict:
 
 #TODO finish
 response=get_article_sentiment_json(article)
-print(response)
-print(response['primary_entity'])
-print(response['Symbol'])
-print(response['recommendation'])
+print("Response:",response)
+print("\nPrimary Entity:",response['primary_entity'])
+print("\nSymbol:",response['Symbol'])
+print("\nRecommendation:",response['recommendation'])
