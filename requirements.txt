@@ -7,13 +7,11 @@ trendet==0.7
 matplotlib==3.7.5
 yahooquery==2.3.7
 lxml==4.9.3
-
 python-dotenv==1.0.0
 multitasking==0.0.11
 yfinance==0.1.66 #TODO fix this error to make it work with more recent version
 crewai==0.83.0
 crewai-tools==0.14.0
-
-alpaca-trade-api
-pytest
-pytest-mock
+alpaca-trade-api==0.26
+pytest==8.4.2
+pytest-mock==3.15.0
