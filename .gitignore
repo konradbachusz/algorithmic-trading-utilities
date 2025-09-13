@@ -166,3 +166,4 @@ cython_debug/
 
 # Environment variables
 .env
+venv3.10

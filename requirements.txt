@@ -1,15 +1,19 @@
 alpaca-py==0.42.1
 pandas==2.0.3
 numpy==1.24.4
-pytest==7.4.4
-pytest-mock==3.3.1
 black==24.4.2
 flake8==7.1.0
 trendet==0.7
 matplotlib==3.7.5
 yahooquery==2.3.7
 lxml==4.9.3
-alpaca-trade-api==3.2.0
+
 python-dotenv==1.0.0
 multitasking==0.0.11
 yfinance==0.1.66 #TODO fix this error to make it work with more recent version
+crewai==0.83.0
+crewai-tools==0.14.0
+
+alpaca-trade-api
+pytest
+pytest-mock
