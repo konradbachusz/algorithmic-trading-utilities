@@ -1,14 +1,15 @@
 import requests
 import json
 import sys
+import os
 
 sys.path.insert(1, "algorithmic_trading_utilities")
 # Try different import approaches for data modules
 try:
-    from common.prompts import FINANCIAL_ANALYSIS_PROMPT
+    from common.prompts import FINANCIAL_ANALYSIS_PROMPT, FINANCIAL_ANALYSIS_PROMPT_RAW_WEBSITE_CONTENT
     from common.config import model, ollama_url
 except ImportError:
-    from algorithmic_trading_utilities.common.prompts import FINANCIAL_ANALYSIS_PROMPT
+    from algorithmic_trading_utilities.common.prompts import FINANCIAL_ANALYSIS_PROMPT, FINANCIAL_ANALYSIS_PROMPT_RAW_WEBSITE_CONTENT
     from algorithmic_trading_utilities.common.config import model, ollama_url
 import time
 import re
@@ -42,7 +43,8 @@ He said orforglipron, which has a simpler production process than injected GLP-1
 The executive declined to comment on pricing plans for orforglipron."""
 
 
-prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article)
+# prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article) #todo FIX
+prompt = FINANCIAL_ANALYSIS_PROMPT_RAW_WEBSITE_CONTENT.format(article=article)
 
 
 # TODO unit test this function
@@ -133,7 +135,8 @@ def get_article_sentiment_json(article: str) -> dict:
         dict: The sentiment analysis JSON from the LLM, or None if failed.
     """
     # Create the prompt with the article
-    prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article)
+    # prompt = FINANCIAL_ANALYSIS_PROMPT.format(article=article) #todo FIX
+    prompt = FINANCIAL_ANALYSIS_PROMPT_RAW_WEBSITE_CONTENT.format(article=article)
 
     # Define the keys we expect in a valid response
     required_keys = [
@@ -201,9 +204,41 @@ def get_article_sentiment_json(article: str) -> dict:
     return None
 
 
-#TODO finish
-response=get_article_sentiment_json(article)
-print("Response:",response)
-print("\nPrimary Entity:",response['primary_entity'])
-print("\nSymbol:",response['Symbol'])
-print("\nRecommendation:",response['recommendation'])
+def process_articles_folder():
+    """Process all articles in the articles folder and save sentiment analysis results."""
+    articles_dir = "articles"
+    results = []
+    
+    # Process each file in the articles directory
+    for filename in os.listdir(articles_dir):
+        if filename.endswith(".txt"):
+            file_path = os.path.join(articles_dir, filename)
+            print(f"\nProcessing {filename}...")
+            
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    article_content = f.read()
+                
+                sentiment_result = get_article_sentiment_json(article_content)
+                if sentiment_result:
+                    # Add filename to result for reference
+                    sentiment_result['source_file'] = filename
+                    results.append(sentiment_result)
+                    print(f"Successfully analyzed {filename}")
+                else:
+                    print(f"Failed to analyze {filename}")
+            
+            except Exception as e:
+                print(f"Error processing {filename}: {str(e)}")
+    
+    # Save combined results
+    if results:
+        output_file = "articles_analysis.json"
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved combined analysis to {output_file}")
+    else:
+        print("\nNo successful analyses to save")
+
+# Replace the existing file processing code with this
+process_articles_folder()

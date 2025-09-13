@@ -1,30 +1,49 @@
 from crewai_tools import ScrapeWebsiteTool
+import time
+import os
 
 
-def scrape_page(url):
+def scrape_page(url, max_retries=5):
     """
-    Scrapes the content of a specified webpage.
+    Scrapes the content of a specified webpage with retry logic.
 
     This function utilizes the ScrapeWebsiteTool to extract text from the
-    webpage at the given URL. It initializes the tool with the URL and
-    executes the scraping process, returning the extracted text.
+    webpage at the given URL. It will retry up to 5 times if it encounters
+    a client challenge message, using exponential backoff between attempts.
 
     Args:
         url (str): The URL of the webpage to scrape.
+        max_retries (int): Maximum number of retry attempts. Defaults to 5.
 
     Returns:
         str: The text content extracted from the webpage.
+
+    Raises:
+        RuntimeError: If all retry attempts fail to get valid content.
     """
+    js_disabled_text = "JavaScript is disabled in your browser"
 
-    # To enable scrapping any website it finds during it's execution
-    tool = ScrapeWebsiteTool()
+    for attempt in range(max_retries):
+        try:
+            tool = ScrapeWebsiteTool(website_url=url)
+            scraped_page_text = tool.run()
+            
+            if js_disabled_text not in scraped_page_text:
+                print(scraped_page_text)
+                return scraped_page_text
+            
+            delay = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+            print(f"Attempt {attempt + 1} failed due to client challenge. Retrying in {delay} seconds...")
+            time.sleep(delay)
+            
+        except Exception as e:
+            delay = 2 ** attempt
+            print(f"Error on attempt {attempt + 1}: {str(e)}. Retrying in {delay} seconds...")
+            time.sleep(delay)
+        
+    raise RuntimeError(f"Failed to scrape page after {max_retries} attempts")
 
-    # Initialize the tool with the website URL,
-    # so the agent can only scrap the content of the specified website
-    tool = ScrapeWebsiteTool(website_url=url)
-
-    # Extract the text from the site
-    scraped_page_text = tool.run()
-    return scraped_page_text
-
-print(scrape_page("https://en.wikipedia.org/wiki/Brain%E2%80%93computer_interface"))
+scraped_text = scrape_page("https://thehackernews.com/2025/09/new-hybridpetya-ransomware-bypasses.html")
+os.makedirs("articles", exist_ok=True)
+with open(os.path.join("articles", "scraped_page6.txt"), "w", encoding="utf-8") as f:
+    f.write(scraped_text)

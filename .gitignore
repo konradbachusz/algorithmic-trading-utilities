@@ -167,3 +167,5 @@ cython_debug/
 # Environment variables
 .env
 venv3.10
+articles/
+articles_analysis.json
