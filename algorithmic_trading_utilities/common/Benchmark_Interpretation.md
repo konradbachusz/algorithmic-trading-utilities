@@ -24,7 +24,7 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 ## Sharpe Ratio
 
 **Definition:** Reward per unit of total risk (volatility).  
-**Interpretation:**  
+**Interpretation:** (For an annualized Sharpe Ratio)
 
 - **< 1** → Low risk-adjusted returns.  
 - **1 – 2** → Good performance.  
@@ -37,6 +37,11 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 **Interpretation:**  
 
 - Focuses on bad (downside) volatility, ignoring upside swings. Higher is better.  
+- **Magnitude guidelines:**  
+  - **< 1** → Poor risk-adjusted performance relative to downside risk.  
+  - **1 – 2** → Acceptable. Portfolio manages downside reasonably.  
+  - **2 – 3** → Good. Portfolio captures upside well while limiting losses.  
+  - **> 3** → Excellent. Portfolio efficiently maximizes returns with minimal downside.  
 
 ## Total Return
 
@@ -67,14 +72,20 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 
 - Short → Quick recovery.  
 - Long → Prolonged losses, higher stress.  
+- **Example:** If your portfolio peak was on Jan 1 at \$100, fell to \$80 on Feb 1, and recovered back to \$100 by Mar 1, the drawdown duration is 2 months (Feb 1 → Mar 1).  
 
-## Volatility / Std Dev
+## Volatility
 
 **Definition:** Standard deviation of daily returns; measures total risk.  
 **Interpretation:**  
 
 - High → Portfolio swings widely.  
 - Low → Stable returns.  
+- **Magnitude guidelines / intuitive example:**  
+  - Daily volatility of 1% → moderate fluctuations; losing \$1 on \$100 is common.  
+  - Daily volatility of 3% → aggressive swings; losing \$3 on \$100 is typical.  
+  - Annualized volatility ≈ daily volatility × √252.  
+  - Helps compare “smoothness” of different portfolios.  
 
 ## Value at Risk (VaR)
 
@@ -89,6 +100,9 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 **Interpretation:**  
 
 - Captures tail risk; higher CVaR → worse extreme losses.  
+- **Magnitude guidelines / intuitive example:**  
+  - 95% CVaR of -8% → If the worst 5% of days occur, the average loss is 8% of the portfolio.  
+  - Useful for understanding extreme risk exposure, beyond just the maximum expected loss (VaR).  
 
 ## Skewness
 
@@ -105,6 +119,10 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 
 - High → Extreme returns more likely than normal.  
 - Low → Returns cluster near the mean.  
+- **Magnitude / intuitive example:**  
+  - Kurtosis ≈ 3 → Close to normal distribution; typical fluctuations dominate.  
+  - Kurtosis > 5 → “Fat tails”; more extreme losses or gains than expected.  
+  - Helps assess risk of rare but large events.  
 
 ## Calmar Ratio
 
@@ -112,3 +130,8 @@ This document explains each portfolio and risk metric from the `PerformanceMetri
 **Interpretation:**  
 
 - Higher → Better risk-adjusted performance relative to drawdown.  
+- **Magnitude guidelines / intuitive example:**  
+  - Calmar Ratio < 0.5 → Portfolio returns are low compared to drawdown risk.  
+  - 0.5 – 1 → Moderate; reasonable balance of risk and reward.  
+  - 1 – 2 → Good; strong returns relative to risk.  
+  - \> 2 → Excellent; portfolio achieves high return with relatively small drawdowns.  
