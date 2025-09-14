@@ -22,7 +22,14 @@ except ImportError:
 
 
 class PerformanceMetrics:
-    """Performance Metrics Computation Module."""
+    """
+    Performance Metrics Computation Module.
+
+    Example:
+        >>> from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+        >>> pm = PerformanceMetrics(portfolio_equity=portfolio_series, benchmark_equity=benchmark_series)
+        >>> metrics = pm.report()
+    """
 
     def __init__(
         self,
@@ -73,58 +80,105 @@ class PerformanceMetrics:
         return equity.pct_change().dropna()
 
     def average_return(self) -> float:
-        """Compute average daily return."""
+        """Compute average daily return.
+
+        Returns:
+            float: Mean of daily returns.
+        """
         return self.returns.mean()
 
     def total_return(self) -> float:
-        """Compute cumulative portfolio return."""
+        """Compute cumulative portfolio return.
+
+        Returns:
+            float: Total return over the period.
+        """
         return self.portfolio.iloc[-1] / self.portfolio.iloc[0] - 1
 
     def std_dev(self) -> float:
-        """Compute standard deviation of daily returns."""
+        """Compute standard deviation of daily returns.
+
+        Returns:
+            float: Standard deviation of daily returns.
+        """
         return self.returns.std()
 
     def sharpe_ratio(self) -> float:
-        """Compute daily Sharpe ratio."""
+        """Compute daily Sharpe ratio.
+
+        Returns:
+            float: Daily Sharpe ratio (risk-adjusted return).
+        """
         return (self.average_return() - self.risk_free_rate) / self.std_dev()
 
     def annualised_sharpe(self) -> float:
-        """Compute annualised Sharpe ratio."""
+        """Compute annualised Sharpe ratio.
+
+        Returns:
+            float: Annualised Sharpe ratio.
+        """
         return self.sharpe_ratio() * np.sqrt(252)
 
     def downside_std(self) -> float:
-        """Compute downside deviation of returns."""
+        """Compute downside deviation of returns.
+
+        Returns:
+            float: Standard deviation of negative returns.
+        """
         downside = self.returns[self.returns < 0]
         return downside.std() if not downside.empty else 0.0
 
     def sortino_ratio(self) -> float:
-        """Compute Sortino ratio."""
+        """Compute Sortino ratio.
+
+        Returns:
+            float: Sortino ratio based on downside deviation.
+        """
         dr = self.downside_std()
         return (self.average_return() - self.risk_free_rate) / dr if dr > 0 else np.nan
 
     def annualised_sortino(self) -> float:
-        """Compute annualised Sortino ratio."""
+        """Compute annualised Sortino ratio.
+
+        Returns:
+            float: Annualised Sortino ratio.
+        """
         return self.sortino_ratio() * np.sqrt(252)
 
     def drawdown_series(self) -> pd.Series:
-        """Compute drawdown series."""
+        """Compute drawdown series.
+
+        Returns:
+            pd.Series: Series representing drawdown at each point in time.
+        """
         cum_max = self.portfolio.cummax()
         return (cum_max - self.portfolio) / cum_max
 
     def max_drawdown(self) -> float:
-        """Compute maximum drawdown."""
+        """Compute maximum drawdown.
+
+        Returns:
+            float: Maximum drawdown value.
+        """
         return self.drawdown_series().max()
 
     def average_drawdown(self) -> float:
-        """Compute average drawdown."""
+        """Compute average drawdown.
+
+        Returns:
+            float: Mean drawdown over the period.
+        """
         return self.drawdown_series().mean()
 
     def drawdown_duration(self) -> int:
-        """Compute maximum drawdown duration in days."""
+        """Compute maximum drawdown duration in days.
+
+        Returns:
+            int: Maximum consecutive days below previous peak.
+        """
         dd = self.drawdown_series()
         if dd.empty:
             return 0
-        # Vectorized run-length approach
         is_dd = dd > 0
         boundaries = np.diff(np.concatenate(([0], is_dd.astype(int), [0])))
         run_starts, run_ends = (
@@ -136,7 +190,14 @@ class PerformanceMetrics:
         return (run_ends - run_starts).max()
 
     def return_distribution_stats(self, alpha=0.05) -> dict:
-        """Compute return distribution statistics."""
+        """Compute return distribution statistics including skew, kurtosis, VaR, CVaR.
+
+        Args:
+            alpha (float, optional): Significance level for VaR/CVaR. Defaults to 0.05.
+
+        Returns:
+            dict: Dictionary containing skewness, kurtosis, VaR, and CVaR.
+        """
         r = self.returns
         var = r.quantile(alpha)
         cvar = r[r <= var].mean()
@@ -148,7 +209,11 @@ class PerformanceMetrics:
         }
 
     def alpha_beta(self) -> dict:
-        """Compute CAPM alpha and beta against benchmark."""
+        """Compute CAPM alpha and beta against benchmark.
+
+        Returns:
+            dict: Dictionary with keys 'alpha' and 'beta'.
+        """
         if self.benchmark_returns is None or len(self.benchmark_returns) != len(
             self.returns
         ):
@@ -159,7 +224,14 @@ class PerformanceMetrics:
         return {"alpha": model.intercept_[0], "beta": model.coef_[0][0]}
 
     def rolling_alpha_beta(self, window: int = 252) -> pd.DataFrame:
-        """Compute rolling alpha and beta."""
+        """Compute rolling alpha and beta over a specified window.
+
+        Args:
+            window (int, optional): Rolling window size in days. Defaults to 252.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns 'alpha' and 'beta'.
+        """
         if self.benchmark_returns is None or len(self.benchmark_returns) < window:
             return pd.DataFrame(columns=["alpha", "beta"])
         alphas, betas = [], []
@@ -175,12 +247,20 @@ class PerformanceMetrics:
         return pd.DataFrame({"alpha": alphas, "beta": betas}, index=index)
 
     def calmar_ratio(self) -> float:
-        """Compute Calmar ratio (annual return / max drawdown)."""
+        """Compute Calmar ratio (annual return / max drawdown).
+
+        Returns:
+            float: Calmar ratio value.
+        """
         dd = self.max_drawdown()
         return self.average_return() * 252 / dd if dd > 0 else np.nan
 
     def calculate_all(self) -> dict:
-        """Aggregate all performance metrics."""
+        """Aggregate all performance metrics into a dictionary.
+
+        Returns:
+            dict: Dictionary of all portfolio performance metrics.
+        """
         dist_stats = self.return_distribution_stats()
         metrics = {
             "average_return": self.average_return(),
@@ -203,7 +283,11 @@ class PerformanceMetrics:
         return metrics
 
     def calculate_benchmark_metrics(self) -> dict:
-        """Compute benchmark performance metrics."""
+        """Compute benchmark performance metrics.
+
+        Returns:
+            dict: Dictionary of benchmark performance metrics.
+        """
         if self.benchmark is None:
             return {k: float("nan") for k in self.calculate_all().keys()}
         benchmark_pm = PerformanceMetrics(
@@ -216,14 +300,13 @@ class PerformanceMetrics:
         return bm_metrics
 
     def report(self):
-        """Print a formatted performance comparison table."""
+        """Print a formatted performance comparison table between strategy and benchmark."""
         if self.benchmark is None:
             print("Benchmark equity not provided. Cannot generate comparison report.")
             return
 
         strategy_metrics = self.calculate_all()
 
-        # Swap portfolio temporarily for benchmark metrics
         original_portfolio, original_returns = self.portfolio, self.returns
         self.portfolio, self.returns = self.benchmark, self.benchmark_returns
         benchmark_metrics = self.calculate_benchmark_metrics()
@@ -262,7 +345,6 @@ class PerformanceMetrics:
             strat_val = strategy_metrics.get(key, float("nan"))
             bench_val = benchmark_metrics.get(key, float("nan"))
 
-            # Format percentages
             if (
                 "Return" in label
                 or "Drawdown" in label
