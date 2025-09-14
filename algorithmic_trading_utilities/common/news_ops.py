@@ -3,25 +3,52 @@ import time
 import os
 import json
 from urllib.parse import urlparse
+import requests
+from bs4 import BeautifulSoup
 
+def scrape_with_beautifulsoup(url):
+    """
+    Scrapes a website using requests and BeautifulSoup.
+
+    Args:
+        url (str): The URL of the website to scrape.
+
+    Returns:
+        str: The text content of the website, or None if an error occurs.
+    """
+    try:
+        # Send a GET request to the specified URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Extract the text from the site
+        text = soup.get_text()
+        return text
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while fetching {url}: {e}")
+        return None
 
 def scrape_page(url, max_retries=5):
     """
-    Scrapes the content of a specified webpage with retry logic.
+    Scrapes a webpage with retries and a fallback mechanism.
 
-    This function utilizes the ScrapeWebsiteTool to extract text from the
-    webpage at the given URL. It will retry up to 5 times if it encounters
-    a client challenge message, using exponential backoff between attempts.
+    This function first tries to scrape content using ScrapeWebsiteTool,
+    with exponential backoff for retries on failures or client challenges.
+    If the primary method fails after all retries, it falls back to a
+    simpler scraping method using requests and BeautifulSoup.
 
     Args:
         url (str): The URL of the webpage to scrape.
-        max_retries (int): Maximum number of retry attempts. Defaults to 5.
+        max_retries (int): Maximum number of retry attempts for the primary tool.
+                         Defaults to 5.
 
     Returns:
         str: The text content extracted from the webpage.
 
     Raises:
-        RuntimeError: If all retry attempts fail to get valid content.
+        RuntimeError: If all scraping attempts, including the fallback, fail.
     """
     js_disabled_text = "JavaScript is disabled in your browser"
 
@@ -29,21 +56,28 @@ def scrape_page(url, max_retries=5):
         try:
             tool = ScrapeWebsiteTool(website_url=url)
             scraped_page_text = tool.run()
-            
+
             if js_disabled_text not in scraped_page_text:
                 print(scraped_page_text)
                 return scraped_page_text
-            
+
             delay = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
             print(f"Attempt {attempt + 1} failed due to client challenge. Retrying in {delay} seconds...")
             time.sleep(delay)
-            
+
         except Exception as e:
             delay = 2 ** attempt
             print(f"Error on attempt {attempt + 1}: {str(e)}. Retrying in {delay} seconds...")
             time.sleep(delay)
-        
-    raise RuntimeError(f"Failed to scrape page after {max_retries} attempts")
+
+    # Fallback to BeautifulSoup if the primary method fails
+    print(f"ScrapeWebsiteTool failed for {url}. Falling back to BeautifulSoup...")
+    content = scrape_with_beautifulsoup(url)
+    if content:
+        print(f"Successfully scraped {url} with BeautifulSoup fallback.")
+        return content
+
+    raise RuntimeError(f"Failed to scrape page {url} after all attempts and fallbacks.")
 
 #TODO remove comments below after testing
 # scraped_text = scrape_page("https://thehackernews.com/2025/09/new-hybridpetya-ransomware-bypasses.html")
@@ -88,6 +122,10 @@ def scrape_multiple_pages(urls, output_filename="scraped_articles.json"):
     else:
         print("\nNo data was scraped.")
 
+
+
+
+
 #TODO remove
 urls=[
     "https://thehackernews.com/2025/09/new-hybridpetya-ransomware-bypasses.html",
@@ -103,4 +141,5 @@ urls=[
     "https://www.bloomberg.com/news/articles/2025-09-14/polish-stock-rally-seen-rolling-on-despite-drones-bank-tax-hike",
     "https://www.bloomberg.com/news/articles/2025-09-14/cross-border-bank-consolidation-benefits-cyprus-patsalides-says?embedded-checkout=true"
 ]
+#TODO bring back
 scrape_multiple_pages(urls)
