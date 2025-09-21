@@ -6,20 +6,6 @@ import os
 from dotenv import load_dotenv
 from datetime import date
 
-# TODO research if there's a more elegant solution to this
-# Try different import approaches for data modules
-try:
-    from data.yfinance_ops import get_sp500_prices
-except ImportError:
-    from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
-
-# Try different import approaches for common modules
-try:
-    from common.viz_ops import compare_portfolio_and_benchmark
-except ImportError:
-    from algorithmic_trading_utilities.common.viz_ops import (
-        compare_portfolio_and_benchmark,
-    )
 
 # Load environment variables from .env file
 load_dotenv()
