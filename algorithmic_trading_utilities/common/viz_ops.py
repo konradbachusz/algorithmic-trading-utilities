@@ -2,6 +2,8 @@ from typing import Optional, Tuple
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import seaborn as sns
 from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
 
 
@@ -133,23 +135,38 @@ class PerformanceViz:
 
         ax.plot(x, self.portfolio.values, label="Portfolio")
 
-        # Highlight drawdown periods in red
         in_dd = dd > 0
         if in_dd.any():
             boundaries = np.diff(np.concatenate(([0], in_dd.astype(int), [0])))
             start_idx = np.where(boundaries == 1)[0]
             end_idx = np.where(boundaries == -1)[0]
-
+            labeled = False
             for s, e in zip(start_idx, end_idx):
-                top = self.portfolio.values[s - 1]  # equity at start of drawdown
-                bottom = self.portfolio.values[s:e]  # current equity during drawdown
-                ax.fill_between(x[s:e], bottom, top, alpha=0.3, color="red")
+                top = self.portfolio.values[s - 1]
+                bottom = self.portfolio.values[s:e]
+                if not labeled:
+                    ax.fill_between(
+                        x[s:e],
+                        bottom,
+                        top,
+                        alpha=0.3,
+                        color="red",
+                        label="Drawdown",
+                    )
+                    labeled = True
+                else:
+                    ax.fill_between(
+                        x[s:e],
+                        bottom,
+                        top,
+                        alpha=0.3,
+                        color="red",
+                    )
                 ax.hlines(
                     y=top,
                     xmin=x[s - 1],
                     xmax=x[e - 1],
                     colors="red",
-                    # linestyles="--",
                     linewidth=1,
                 )
 
@@ -199,10 +216,40 @@ class PerformanceViz:
             color="red",
             fontsize=10,
         )
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: "{:.0%}".format(y)))
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1))
         ax.set_xlabel("Date")
         ax.set_ylabel("Drawdown (fraction)")
         ax.grid(True)
+        ax.legend()
+        if savepath:
+            fig.savefig(savepath, bbox_inches="tight")
+        if show:
+            plt.show()
+        return fig
+
+    def plot_rolling_volatility(
+        self, window: int = 63, show: bool = True, savepath: Optional[str] = None
+    ) -> plt.Figure:
+        """Plot Rolling Volatility of daily returns for portfolio and benchmark.
+
+        Args:
+            window (int, optional): Rolling window length in days. Defaults to 63.
+            show (bool, optional): Whether to display the plot. Defaults to True.
+            savepath (Optional[str], optional): Path to save the plot. Defaults to None.
+
+        Returns:
+            plt.Figure: Matplotlib Figure object.
+        """
+        fig = self._make_fig(f"Rolling Volatility ({window} days)")
+        ax = fig.axes[0]
+        vol = self.pm.returns.rolling(window).std()
+        ax.plot(vol.index, vol, label="Portfolio Volatility")
+        benchmark_vol = self.pm.benchmark_returns.rolling(window).std()
+        ax.plot(benchmark_vol.index, benchmark_vol, label="Benchmark Volatility")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Volatility")
+        ax.grid(True)
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1))
         ax.legend()
         if savepath:
             fig.savefig(savepath, bbox_inches="tight")
@@ -241,6 +288,71 @@ class PerformanceViz:
             plt.show()
         return fig
 
+    def plot_monthly_returns_heatmap(
+        self, show: bool = True, savepath: Optional[str] = None
+    ) -> plt.Figure:
+        """
+        Plot a heatmap of monthly returns (strategy) with blue color scale,
+        squares, no colorbar, and light grey for missing months annotated with '-'.
+
+        Args:
+            show (bool, optional): Whether to display the plot. Defaults to True.
+            savepath (Optional[str], optional): Path to save the plot. Defaults to None.
+
+        Returns:
+            plt.Figure: Matplotlib Figure object.
+        """
+        fig = self._make_fig("Monthly Returns Heatmap")
+        ax = fig.axes[0]
+        monthly = self.portfolio.resample("M").last().pct_change()
+        df = monthly.to_frame(name="Return")
+        df["Year"] = df.index.year
+        df["Month"] = df.index.month
+
+        pivot = df.pivot(index="Year", columns="Month", values="Return")
+
+        data = pivot.copy()
+        data_filled = data.fillna(-999)
+
+        cmap = sns.color_palette("Blues", as_cmap=True)
+        data_filled == -999
+        sns.heatmap(
+            data_filled.replace(-999, np.nan),
+            annot=True,
+            fmt=".1%",
+            cmap=cmap,
+            linewidths=0.5,
+            linecolor="white",
+            square=True,
+            cbar=False,
+            ax=ax,
+        )
+
+        ax.set_ylabel("Year")
+        ax.set_xlabel("Month")
+        month_names = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+
+        ax.set_xticklabels(month_names)
+        ax.set_yticklabels(data.index, rotation=0)
+        if savepath:
+            fig.savefig(savepath, bbox_inches="tight")
+        if show:
+            plt.show()
+        return fig
+
     def plot_rolling_sharpe(
         self, window: int = 63, show: bool = True, savepath: Optional[str] = None
     ) -> plt.Figure:
@@ -256,10 +368,8 @@ class PerformanceViz:
         """
         fig = self._make_fig(f"Rolling Sharpe ({window} days)")
         ax = fig.axes[0]
-        r = pd.Series(self.pm.returns, index=self.portfolio.index)
-        rolling_sharpe = (
-            r.rolling(window).mean() - self.pm.risk_free_rate
-        ) / r.rolling(window).std()
+        rolling_sharpe = self.pm.rolling_sharpe(window)
+
         ax.plot(
             rolling_sharpe.index,
             rolling_sharpe.values,
@@ -305,6 +415,7 @@ class PerformanceViz:
         ax_a.set_xlabel("Date")
         ax_a.set_ylabel("Alpha")
         ax_a.grid(True)
+        ax_a.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1))
         ax_a.legend([f"Rolling Alpha ({window})"])
 
         # Beta
@@ -354,12 +465,14 @@ class PerformanceViz:
                 savepath=(out_prefix + "_drawdown.png") if out_prefix else None,
             )
         )
-        # figs.append(
-        #     self.plot_equity_with_underwater(
-        #         show=show,
-        #         savepath=(out_prefix + "_underwater.png") if out_prefix else None,
-        #     )
-        # )
+        figs.append(
+            self.plot_rolling_volatility(
+                show=show,
+                savepath=(out_prefix + "_rolling_volatility.png")
+                if out_prefix
+                else None,
+            )
+        )
         figs.append(
             self.plot_returns_distribution(
                 show=show,
