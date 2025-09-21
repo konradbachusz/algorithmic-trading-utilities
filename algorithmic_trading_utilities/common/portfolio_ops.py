@@ -250,6 +250,19 @@ class PerformanceMetrics:
         index = self.returns.index[window - 1 :]
         return pd.DataFrame({"alpha": alphas, "beta": betas}, index=index)
 
+    def rolling_sharpe(self, window: int = 252) -> pd.Series:
+        """Compute rolling Sharpe ratio with a specified window.
+
+        Args:
+            window (int, optional): Rolling window size in days. Defaults to 252.
+
+        Returns:
+            pd.Series: Series with of rolling Sharpe.
+        """
+        return (
+            self.returns.rolling(window).mean() - self.risk_free_rate
+        ) / self.returns.rolling(window).std()
+
     def calmar_ratio(self) -> float:
         """Compute Calmar ratio (annual return / max drawdown).
 
