@@ -13,12 +13,12 @@ except ImportError:
     from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
 
 # Try different import approaches for broker modules
-# try:
-#     from brokers.alpaca.alpaca_ops import get_portfolio_history
-# except ImportError:
-#     from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
-#         get_portfolio_history,
-#     )
+try:
+    from brokers.alpaca.alpaca_ops import get_portfolio_history
+except ImportError:
+    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
+        get_portfolio_history,
+    )
 
 
 class PerformanceMetrics:
@@ -33,7 +33,7 @@ class PerformanceMetrics:
 
     def __init__(
         self,
-        portfolio_equity: pd.Series,
+        portfolio_equity: pd.Series = None,
         benchmark_equity: pd.Series = None,
         risk_free_rate: float = 0.02 / 252,
     ):
@@ -41,12 +41,16 @@ class PerformanceMetrics:
         Initialize performance metrics calculator.
 
         Args:
-            portfolio_equity (pd.Series): Daily portfolio equity values.
+            portfolio_equity (pd.Series, Optional): Daily portfolio equity values.
+                Defaults to Alpaca portfolio equity.
             benchmark_equity (pd.Series, optional): Daily benchmark equity values.
                 If provided, enables alpha/beta calculations. Defaults to None.
             risk_free_rate (float, optional): Daily risk-free rate. Defaults to 0.02/252.
         """
-        self.portfolio = pd.Series(portfolio_equity)
+        if portfolio_equity is not None:
+            self.portfolio = pd.Series(portfolio_equity)
+        else:
+            self.portfolio = get_portfolio_history()
         assert isinstance(self.portfolio.index, pd.DatetimeIndex), (
             "portfolio index must be a DatetimeIndex"
         )

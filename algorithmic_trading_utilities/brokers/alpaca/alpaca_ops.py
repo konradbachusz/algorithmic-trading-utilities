@@ -40,6 +40,7 @@ def get_portfolio_history():
     Returns:
         object: Portfolio history object containing equity data.
     """
+    # TODO: Ensure that it returns Portfolio Equity as pd.Series with pd.DatetimeIndex index.
     return api.get_portfolio_history(
         timeframe="1D", date_start="2025-04-08", date_end=date.today().isoformat()
     )
