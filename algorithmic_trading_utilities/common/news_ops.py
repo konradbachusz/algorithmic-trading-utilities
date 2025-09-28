@@ -135,7 +135,6 @@ urls=[
     "https://www.ft.com/content/f52feb05-d963-441c-b19a-fc4f64926e1b",
     "https://www.ft.com/content/be40c638-77ce-4986-9274-fa157d3a0ffb",
     "https://www.reuters.com/business/nasdaq-notches-record-high-close-traders-look-fed-meeting-2025-09-12/",
-    "https://www.reuters.com/business/nasdaq-notches-record-high-close-traders-look-fed-meeting-2025-09-12/",
     "https://www.reuters.com/world/china/us-chinese-officials-launch-talks-spain-trade-irritants-tiktok-deadline-2025-09-14/",
     "https://www.bloomberg.com/news/articles/2025-09-14/switzerland-s-central-bank-learns-to-live-with-a-strong-franc",
     "https://www.bloomberg.com/news/articles/2025-09-14/polish-stock-rally-seen-rolling-on-despite-drones-bank-tax-hike",
