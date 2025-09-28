@@ -126,19 +126,52 @@ def scrape_multiple_pages(urls, output_filename="scraped_articles.json"):
 
 
 
-#TODO remove
-urls=[
-    "https://thehackernews.com/2025/09/new-hybridpetya-ransomware-bypasses.html",
-    "https://www.ft.com/content/a2b6f8f6-26d0-4493-a961-2aeb0d527157",
-    "https://www.ft.com/content/fe1fd1ff-8a7b-4958-b123-cf9fc93c6e36",
-    "https://www.ft.com/content/585e7376-8006-4ada-8a12-d31d39b0cf39",
-    "https://www.ft.com/content/f52feb05-d963-441c-b19a-fc4f64926e1b",
-    "https://www.ft.com/content/be40c638-77ce-4986-9274-fa157d3a0ffb",
-    "https://www.reuters.com/business/nasdaq-notches-record-high-close-traders-look-fed-meeting-2025-09-12/",
-    "https://www.reuters.com/world/china/us-chinese-officials-launch-talks-spain-trade-irritants-tiktok-deadline-2025-09-14/",
-    "https://www.bloomberg.com/news/articles/2025-09-14/switzerland-s-central-bank-learns-to-live-with-a-strong-franc",
-    "https://www.bloomberg.com/news/articles/2025-09-14/polish-stock-rally-seen-rolling-on-despite-drones-bank-tax-hike",
-    "https://www.bloomberg.com/news/articles/2025-09-14/cross-border-bank-consolidation-benefits-cyprus-patsalides-says?embedded-checkout=true"
-]
-#TODO bring back
-scrape_multiple_pages(urls)
+# #TODO remove
+# urls=[
+#     "https://thehackernews.com/2025/09/new-hybridpetya-ransomware-bypasses.html",
+#     "https://www.ft.com/content/a2b6f8f6-26d0-4493-a961-2aeb0d527157",
+#     "https://www.ft.com/content/fe1fd1ff-8a7b-4958-b123-cf9fc93c6e36",
+#     "https://www.ft.com/content/585e7376-8006-4ada-8a12-d31d39b0cf39",
+#     "https://www.ft.com/content/f52feb05-d963-441c-b19a-fc4f64926e1b",
+#     "https://www.ft.com/content/be40c638-77ce-4986-9274-fa157d3a0ffb",
+#     "https://www.reuters.com/business/nasdaq-notches-record-high-close-traders-look-fed-meeting-2025-09-12/",
+#     "https://www.reuters.com/world/china/us-chinese-officials-launch-talks-spain-trade-irritants-tiktok-deadline-2025-09-14/",
+#     "https://www.bloomberg.com/news/articles/2025-09-14/switzerland-s-central-bank-learns-to-live-with-a-strong-franc",
+#     "https://www.bloomberg.com/news/articles/2025-09-14/polish-stock-rally-seen-rolling-on-despite-drones-bank-tax-hike",
+#     "https://www.bloomberg.com/news/articles/2025-09-14/cross-border-bank-consolidation-benefits-cyprus-patsalides-says?embedded-checkout=true"
+# ]
+# #TODO bring back
+# scrape_multiple_pages(urls)
+
+def get_latest_bbc_articles(url):
+    """
+    Scrapes the BBC Business news page to get a list of the latest articles.
+
+    Args:
+        url (str): The URL of the BBC Business news page.
+
+    Returns:
+        list: A list of full URLs for the articles found on the page.
+    """
+    response = requests.get(url)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    article_links = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag['href']
+        if href.startswith("/news/articles/"):
+            full_url = f"https://www.bbc.co.uk{href}"
+            article_links.add(full_url)
+            
+    return list(article_links)
+
+
+#todo REMOVE
+url="https://www.bbc.co.uk/news/business"
+
+soup=get_latest_bbc_articles(url)
+print(soup)
+# with open("bbc_business.html", "w", encoding="utf-8") as f:
+#     f.write(str(soup))

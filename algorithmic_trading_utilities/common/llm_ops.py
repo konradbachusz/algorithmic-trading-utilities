@@ -288,6 +288,7 @@ def process_articles(articles):
         sentiment_result = get_article_sentiment_json(combined_input)
 
         if sentiment_result:
+            sentiment_result['url'] = url
             results.append(sentiment_result)
             print(f"Successfully analyzed article from {source}")
         else:
@@ -295,16 +296,16 @@ def process_articles(articles):
 
     # Save combined results
     if results:
-        output_file = "articles_analysis.json"
+        output_file = "articles_analysis2.json"
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
         print(f"\nSaved combined analysis to {output_file}")
     else:
         print("\nNo successful analyses to save")
 
-
+#TODO remove
 if __name__ == "__main__":
-    input_filename = "articles/scraped_selenium_articles.json"
+    input_filename = "articles/scraped_articles_soup2.json"
     # Load articles from the specified JSON file
     scraped_articles = read_json_articles(input_filename)
 

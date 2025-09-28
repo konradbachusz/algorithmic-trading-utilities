@@ -59,39 +59,16 @@ def scrape_with_beautifulsoup(url):
         print(f"An error occurred while fetching {url}: {e}")
         return None
 
-
-links=["https://www.ft.com/content/0f2637ae-f49c-45c5-845f-3b7aa10bea0f",
-                  "https://www.ft.com/content/c7f511e7-7512-436a-8ba8-12e11e21e110",
-                  "https://www.ft.com/content/5b179bb6-684a-48d1-abac-a25aacb12a49",
-                 "https://uk.finance.yahoo.com/news/finance-week-ahead-us-jobs-data-nike-tesco-greggs-and-jd-wetherspoon-142412365.html",
-                  "https://uk.finance.yahoo.com/news/fca-faces-battle-over-1m-100043927.html",
-                "https://www.bbc.co.uk/news/articles/c8d70d912e6o",
-                "https://www.bbc.co.uk/news/articles/cgl15ykerlro",
-                "https://www.bbc.co.uk/news/articles/cr4qwwk0g0yo",
-                "https://www.bbc.co.uk/news/articles/cly1geen679o",
-                "https://www.bbc.co.uk/news/articles/c179z10vy28o",
-                "https://www.bbc.co.uk/news/articles/c8d70d912e6o",
-                "https://www.bbc.co.uk/news/articles/crkjreprp3po",
-                "https://www.bbc.co.uk/news/videos/cg5ege645reo",
-                "https://www.bbc.co.uk/news/articles/cgl15ykerlro",
-                "https://www.bbc.co.uk/news/articles/c62zggj69e0o",
-                "https://www.theguardian.com/business/2025/sep/26/trump-latest-tariff-threat-raises-fresh-concerns-for-uk-pharma",
-                "https://www.theguardian.com/business/live/2025/sep/26/trump-investors-tariffs-pharmaceuticals-trucks-kitchen-cabinets-markets-uk-borrowing-costs-business-live-news",
-                "https://www.theguardian.com/business/2025/sep/26/bank-of-england-should-not-be-overly-cautious-on-interest-rate-cuts-says-policymaker",
-                "https://www.theguardian.com/business/live/2025/sep/26/trump-investors-tariffs-pharmaceuticals-trucks-kitchen-cabinets-markets-uk-borrowing-costs-business-live-news",
-                "https://www.theguardian.com/commentisfree/2025/sep/25/us-stock-market-trump-wall-street-financial-crisis-federal-reserve",
-                "https://www.theguardian.com/business/live/2025/sep/24/markets-economy-gold-eli-lilly-drug-prices-business-live-news",
-                "https://www.theguardian.com/business/live/2025/sep/23/gold-price-on-track-best-year-since-1979-record-high-global-economy-uk-growth-business-live-news",
-                  "https://www.theguardian.com/business/live/2025/sep/24/markets-economy-gold-eli-lilly-drug-prices-business-live-news",
-                "https://uk.finance.yahoo.com/news/chinese-industrial-profits-jump-august-041948233.html"]
+#TODO remove
+links=['https://www.bbc.co.uk/news/articles/cdjzrl9kkkmo', 'https://www.bbc.co.uk/news/articles/c0q75q4l87no#comments', 'https://www.bbc.co.uk/news/articles/cm2djl9jem7o', 'https://www.bbc.co.uk/news/articles/c77dkl4ev36o', 'https://www.bbc.co.uk/news/articles/c23p028p200o#comments', 'https://www.bbc.co.uk/news/articles/cy8d4v69jw6o#comments', 'https://www.bbc.co.uk/news/articles/cn93e12rypgo', 'https://www.bbc.co.uk/news/articles/c74010vm7pdo', 'https://www.bbc.co.uk/news/articles/crkjreprp3po', 'https://www.bbc.co.uk/news/articles/c62l0j5037eo', 'https://www.bbc.co.uk/news/articles/c62zwz0k5dgo', 'https://www.bbc.co.uk/news/articles/c77dzm681ygo', 'https://www.bbc.co.uk/news/articles/cpq5w324pd3o', 'https://www.bbc.co.uk/news/articles/cvg8vjm4ee1o', 'https://www.bbc.co.uk/news/articles/cy8d4v69jw6o', 'https://www.bbc.co.uk/news/articles/cx275251xzro', 'https://www.bbc.co.uk/news/articles/cm2zv4md2wko', 'https://www.bbc.co.uk/news/articles/cjedze7e95lo', 'https://www.bbc.co.uk/news/articles/c0l6g13rlwko', 'https://www.bbc.co.uk/news/articles/c0q7395np59o', 'https://www.bbc.co.uk/news/articles/c23p028p200o', 'https://www.bbc.co.uk/news/articles/cgl15ykerlro', 'https://www.bbc.co.uk/news/articles/c4gvm1kjxxvo', 'https://www.bbc.co.uk/news/articles/cr4qwwk0g0yo', 'https://www.bbc.co.uk/news/articles/cn5q61kywx1o', 'https://www.bbc.co.uk/news/articles/cx275251xzro#comments', 'https://www.bbc.co.uk/news/articles/c0q75q4l87no', 'https://www.bbc.co.uk/news/articles/cpw1klke7z1o', 'https://www.bbc.co.uk/news/articles/c39r7p47wzgo', 'https://www.bbc.co.uk/news/articles/c179z10vy28o', 'https://www.bbc.co.uk/news/articles/c8d70d912e6o', 'https://www.bbc.co.uk/news/articles/cly1geen679o', 'https://www.bbc.co.uk/news/articles/c99g7ekex5mo', 'https://www.bbc.co.uk/news/articles/c62zggj69e0o', 'https://www.bbc.co.uk/news/articles/c5y5qllgpgzo', 'https://www.bbc.co.uk/news/articles/clyng762q4eo', 'https://www.bbc.co.uk/news/articles/c4gw25w9841o', 'https://www.bbc.co.uk/news/articles/cm2zvj2ex70o', 'https://www.bbc.co.uk/news/articles/c62nven55gro', 'https://www.bbc.co.uk/news/articles/c4gvpgy1w20o', 'https://www.bbc.co.uk/news/articles/cp08467m0zzo', 'https://www.bbc.co.uk/news/articles/c8d7y1gj319o']
 
 #TODO bring back
 scraped_articles = []
 for url in links:
     print(f"Scraping {url}...")
     try:
-        # content = scrape_with_beautifulsoup(url)
-        content = scrape_page(url)
+        content = scrape_with_beautifulsoup(url)
+        #content = scrape_page(url)
         #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
         source = urlparse(url).netloc
         scraped_articles.append({
@@ -104,7 +81,7 @@ for url in links:
         print(f"Failed to scrape {url}: {e}")
 
 print(scraped_articles)
-output_filename = "scraped_articles_crew.json"
+output_filename = "scraped_articles_soup2.json"
 with open(output_filename, "w", encoding="utf-8") as f:
     json.dump(scraped_articles, f, indent=4)
 print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
