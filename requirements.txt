@@ -14,3 +14,4 @@ scikit-learn==1.7.1
 scipy==1.15.3
 pytest==7.4.4
 pytest-mock==3.3.1
+alpaca-trade-api==3.2.0
