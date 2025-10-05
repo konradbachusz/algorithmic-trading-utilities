@@ -184,35 +184,39 @@ def get_bbc_links():
     print(f"Found {len(links)} relevant articles to scrape.")
     return links
 
-#TODO bring back
-links = get_bbc_links()
-scraped_articles = []
-for article_data in links:
-    url = article_data.get("url")
-    tag = article_data.get("tag")
-    post_time = article_data.get("post_time")
-    source = article_data.get("source_page")  # Get the source page URL
-    print(f"Scraping {url} (Tag: {tag})...")
-    try:
-        content = scrape_with_beautifulsoup(url)
-        #content = scrape_page(url)
-        #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
-        scraped_articles.append({
-            "url": url,
-            "tag": tag,
-            "post_time": post_time,
-            "content": content,
-            "source": source  # Use the source page URL here
-        })
-        print(f"Successfully scraped {url}")
-    except Exception as e:
-        print(f"Failed to scrape {article_data}: {e}")
+def scrape_bbc_articles():
 
-print(scraped_articles)
-today_str = date.today().strftime("%Y%m%d")
-output_filename = f"articles/scraped_articles_soup_{today_str}.json"
-with open(output_filename, "w", encoding="utf-8") as f:
-    json.dump(scraped_articles, f, indent=4)
-print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
+    links = get_bbc_links()
+    scraped_articles = []
+    for article_data in links:
+        url = article_data.get("url")
+        tag = article_data.get("tag")
+        post_time = article_data.get("post_time")
+        source = article_data.get("source_page")  # Get the source page URL
+        print(f"Scraping {url} (Tag: {tag})...")
+        try:
+            content = scrape_with_beautifulsoup(url)
+            #content = scrape_page(url)
+            #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
+            scraped_articles.append({
+                "url": url,
+                "tag": tag,
+                "post_time": post_time,
+                "content": content,
+                "source": source  # Use the source page URL here
+            })
+            print(f"Successfully scraped {url}")
+        except Exception as e:
+            print(f"Failed to scrape {article_data}: {e}")
+
+    print(scraped_articles)
+    today_str = date.today().strftime("%Y%m%d")
+    output_filename = f"articles/scraped_articles_soup_{today_str}.json"
+    with open(output_filename, "w", encoding="utf-8") as f:
+        json.dump(scraped_articles, f, indent=4)
+    print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
+
+
+scrape_bbc_articles()
 
 #TODO use only Business or Technology tags
