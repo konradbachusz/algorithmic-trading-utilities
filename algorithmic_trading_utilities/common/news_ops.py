@@ -110,6 +110,27 @@ def get_latest_bbc_articles(url):
     return articles
 
 
+def is_within_one_day(post_time_list: list) -> bool:
+    """Checks if the post time is within one day."""
+    if not post_time_list:
+        return False
+    
+    # Find the relevant time string, e.g., "16 hours ago"
+    time_string = next((s for s in post_time_list if "ago" in s), None)
+    if not time_string:
+        return False
+
+    time_string = time_string.lower()
+    
+    # Always include if it's minutes or hours
+    if "minute" in time_string or "hour" in time_string:
+        return True
+    # For days, only include if it's exactly "1 day ago" or "a day ago"
+    if "day" in time_string and ("1 day" in time_string or "a day" in time_string):
+        return True
+    return False
+
+
 def filter_bbc_posts(articles):
     """
     Filters a list of BBC articles based on specific tags and the presence of a post time.
@@ -122,10 +143,10 @@ def filter_bbc_posts(articles):
     """
     allowed_tags = {"Business", "Technology", "Politics"}
     # An empty list evaluates to False, so this keeps articles where post_time is not empty.
+
     filtered_articles = [
         article for article in articles
-        if article.get("tag") in allowed_tags and
-           any("ago" in s for s in article.get("post_time", []))
+        if article.get("tag") in allowed_tags and is_within_one_day(article.get("post_time"))
     ]
     return filtered_articles
 #TODO good news: FT, yahoo finance, BBC, Guardian?
@@ -152,9 +173,10 @@ def get_bbc_links():
         try:
             articles_from_page = get_latest_bbc_articles(url)
             for article in articles_from_page:
-                if article['url'] not in processed_urls:
+                if article.get('url') not in processed_urls:
+                    article['source_page'] = url  # Add the URL of the page where the link was found
                     all_articles.append(article)
-                    processed_urls.add(article['url'])
+                    processed_urls.add(article.get('url'))
         except Exception as e:
             print(f"Could not scrape {url}: {e}")
 
@@ -169,18 +191,18 @@ for article_data in links:
     url = article_data.get("url")
     tag = article_data.get("tag")
     post_time = article_data.get("post_time")
+    source = article_data.get("source_page")  # Get the source page URL
     print(f"Scraping {url} (Tag: {tag})...")
     try:
         content = scrape_with_beautifulsoup(url)
         #content = scrape_page(url)
         #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
-        source = urlparse(url).netloc
         scraped_articles.append({
             "url": url,
             "tag": tag,
             "post_time": post_time,
             "content": content,
-            "source": source
+            "source": source  # Use the source page URL here
         })
         print(f"Successfully scraped {url}")
     except Exception as e:
