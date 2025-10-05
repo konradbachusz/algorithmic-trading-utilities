@@ -4,6 +4,7 @@ import os
 import json
 from urllib.parse import urlparse
 import requests
+from datetime import date
 from bs4 import BeautifulSoup
 
 from crewai_tools import ScrapeWebsiteTool
@@ -75,48 +76,35 @@ def get_latest_bbc_articles(url):
         url (str): The URL of the BBC Business news page.
 
     Returns:
-        list: A list of full URLs for the articles found on the page.
+        list: A list of dictionaries, each containing the 'url' and 'tag'
+              for an article.
     """
     response = requests.get(url)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.content, "html.parser")
     
-    article_links = set()
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag['href']
-        if href.startswith("/news/articles/"):
-            full_url = f"https://www.bbc.co.uk{href}"
-            article_links.add(full_url)
+    articles = []
+    processed_urls = set()
+
+    # Find all article promo blocks, which act as containers for each article summary
+    for promo in soup.find_all("div", class_=lambda x: x and "Promo" in x and "Wrapper" not in x):
+        link_tag = promo.find("a", href=True)
+        # Find the specific span for the category tag
+        tag_span = promo.find("span", class_="ssrcss-61mhsj-MetadataText")
+
+        if link_tag and link_tag['href'].startswith('/news/'):
+            full_url = f"https://www.bbc.co.uk{link_tag['href']}"
+            # Avoid duplicate articles by checking the URL
+            if full_url not in processed_urls:
+                tag_text = tag_span.get_text(strip=True) if tag_span else "N/A"
+                articles.append({"url": full_url, "tag": tag_text})
+                processed_urls.add(full_url)
             
-    return list(article_links)
+    return articles
 
-#TODO remove
-links=['https://www.bbc.co.uk/news/articles/cdjzrl9kkkmo', 'https://www.bbc.co.uk/news/articles/c0q75q4l87no#comments', 'https://www.bbc.co.uk/news/articles/cm2djl9jem7o', 'https://www.bbc.co.uk/news/articles/c77dkl4ev36o', 'https://www.bbc.co.uk/news/articles/c23p028p200o#comments', 'https://www.bbc.co.uk/news/articles/cy8d4v69jw6o#comments', 'https://www.bbc.co.uk/news/articles/cn93e12rypgo', 'https://www.bbc.co.uk/news/articles/c74010vm7pdo', 'https://www.bbc.co.uk/news/articles/crkjreprp3po', 'https://www.bbc.co.uk/news/articles/c62l0j5037eo', 'https://www.bbc.co.uk/news/articles/c62zwz0k5dgo', 'https://www.bbc.co.uk/news/articles/c77dzm681ygo', 'https://www.bbc.co.uk/news/articles/cpq5w324pd3o', 'https://www.bbc.co.uk/news/articles/cvg8vjm4ee1o', 'https://www.bbc.co.uk/news/articles/cy8d4v69jw6o', 'https://www.bbc.co.uk/news/articles/cx275251xzro', 'https://www.bbc.co.uk/news/articles/cm2zv4md2wko', 'https://www.bbc.co.uk/news/articles/cjedze7e95lo', 'https://www.bbc.co.uk/news/articles/c0l6g13rlwko', 'https://www.bbc.co.uk/news/articles/c0q7395np59o', 'https://www.bbc.co.uk/news/articles/c23p028p200o', 'https://www.bbc.co.uk/news/articles/cgl15ykerlro', 'https://www.bbc.co.uk/news/articles/c4gvm1kjxxvo', 'https://www.bbc.co.uk/news/articles/cr4qwwk0g0yo', 'https://www.bbc.co.uk/news/articles/cn5q61kywx1o', 'https://www.bbc.co.uk/news/articles/cx275251xzro#comments', 'https://www.bbc.co.uk/news/articles/c0q75q4l87no', 'https://www.bbc.co.uk/news/articles/cpw1klke7z1o', 'https://www.bbc.co.uk/news/articles/c39r7p47wzgo', 'https://www.bbc.co.uk/news/articles/c179z10vy28o', 'https://www.bbc.co.uk/news/articles/c8d70d912e6o', 'https://www.bbc.co.uk/news/articles/cly1geen679o', 'https://www.bbc.co.uk/news/articles/c99g7ekex5mo', 'https://www.bbc.co.uk/news/articles/c62zggj69e0o', 'https://www.bbc.co.uk/news/articles/c5y5qllgpgzo', 'https://www.bbc.co.uk/news/articles/clyng762q4eo', 'https://www.bbc.co.uk/news/articles/c4gw25w9841o', 'https://www.bbc.co.uk/news/articles/cm2zvj2ex70o', 'https://www.bbc.co.uk/news/articles/c62nven55gro', 'https://www.bbc.co.uk/news/articles/c4gvpgy1w20o', 'https://www.bbc.co.uk/news/articles/cp08467m0zzo', 'https://www.bbc.co.uk/news/articles/c8d7y1gj319o']
 
-#TODO bring back
-scraped_articles = []
-for url in links:
-    print(f"Scraping {url}...")
-    try:
-        content = scrape_with_beautifulsoup(url)
-        #content = scrape_page(url)
-        #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
-        source = urlparse(url).netloc
-        scraped_articles.append({
-            "url": url,
-            "content": content,
-            "source": source
-        })
-        print(f"Successfully scraped {url}")
-    except Exception as e:
-        print(f"Failed to scrape {url}: {e}")
 
-print(scraped_articles)
-output_filename = "scraped_articles_soup041025.json"
-with open(output_filename, "w", encoding="utf-8") as f:
-    json.dump(scraped_articles, f, indent=4)
-print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
 
 #TODO good news: FT, yahoo finance, BBC, Guardian?
 
@@ -126,7 +114,37 @@ print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filenam
 #todo REMOVE
 url="https://www.bbc.co.uk/news/business"
 
-soup=get_latest_bbc_articles(url)
-print(soup)
+links=get_latest_bbc_articles(url)
+print(links)
 # with open("bbc_business.html", "w", encoding="utf-8") as f:
 #     f.write(str(soup))
+
+#TODO bring back
+scraped_articles = []
+for article_data in links:
+    url = article_data.get("url")
+    tag = article_data.get("tag")
+    print(f"Scraping {url} (Tag: {tag})...")
+    try:
+        content = scrape_with_beautifulsoup(url)
+        #content = scrape_page(url)
+        #TODO if the content contains "Enable JavaScript" or "enable JS" or "Yahoo is part of the Yahoo family of brands" wait a random time and ztry again with beautiful soup or selenium
+        source = urlparse(url).netloc
+        scraped_articles.append({
+            "url": url,
+            "tag": tag,
+            "content": content,
+            "source": source
+        })
+        print(f"Successfully scraped {url}")
+    except Exception as e:
+        print(f"Failed to scrape {article_data}: {e}")
+
+print(scraped_articles)
+today_str = date.today().strftime("%Y%m%d")
+output_filename = f"articles/scraped_articles_soup_{today_str}.json"
+with open(output_filename, "w", encoding="utf-8") as f:
+    json.dump(scraped_articles, f, indent=4)
+print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
+
+#TODO use only Business or Technology tags
