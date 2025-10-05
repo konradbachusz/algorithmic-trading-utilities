@@ -98,7 +98,13 @@ def get_latest_bbc_articles(url):
             # Avoid duplicate articles by checking the URL
             if full_url not in processed_urls:
                 tag_text = tag_span.get_text(strip=True) if tag_span else "N/A"
-                articles.append({"url": full_url, "tag": tag_text})
+                
+                # Find the post time
+                # Find all spans with the specified class and get their text
+                time_spans = promo.find_all("span", class_="visually-hidden ssrcss-1f39n02-VisuallyHidden e16en2lz0")
+                post_time_text = [span.get_text(strip=True) for span in time_spans]
+
+                articles.append({"url": full_url, "tag": tag_text, "post_time": post_time_text})
                 processed_urls.add(full_url)
             
     return articles
@@ -115,7 +121,7 @@ def get_latest_bbc_articles(url):
 url="https://www.bbc.co.uk/news/business"
 
 links=get_latest_bbc_articles(url)
-print(links)
+# print(links)
 # with open("bbc_business.html", "w", encoding="utf-8") as f:
 #     f.write(str(soup))
 
@@ -124,6 +130,7 @@ scraped_articles = []
 for article_data in links:
     url = article_data.get("url")
     tag = article_data.get("tag")
+    post_time = article_data.get("post_time")
     print(f"Scraping {url} (Tag: {tag})...")
     try:
         content = scrape_with_beautifulsoup(url)
@@ -133,6 +140,7 @@ for article_data in links:
         scraped_articles.append({
             "url": url,
             "tag": tag,
+            "post_time": post_time,
             "content": content,
             "source": source
         })
