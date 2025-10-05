@@ -216,7 +216,36 @@ def scrape_bbc_articles():
         json.dump(scraped_articles, f, indent=4)
     print(f"\nScraped data for {len(scraped_articles)} URLs saved to {output_filename}")
 
+#TODO import from somewhere else
+#scrape_bbc_articles()
 
-scrape_bbc_articles()
 
-#TODO use only Business or Technology tags
+def get_yahoo_news_links():
+    url="https://finance.yahoo.com/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    links = set()
+    
+    # Find the main container for the news headlines using the specified class #TODO fix it 
+    headlines_container = soup.find("div", class_="hero-headlines hero-latest-news yf-1mjoczb")
+
+    if headlines_container:
+        # Find all 'a' tags with an 'href' attribute within the container
+        for a_tag in headlines_container.find_all("a", href=True):
+            href = a_tag['href']
+            # Yahoo news articles are often relative paths, so we build the full URL
+            if href.startswith('/'):
+                full_url = f"https://finance.yahoo.com{href}"
+                links.add(full_url)
+    
+    return list(links)
+
+links = get_yahoo_news_links()
+print(f"Found {len(links)} Yahoo Finance links: {links}")
