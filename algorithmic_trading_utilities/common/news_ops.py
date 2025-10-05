@@ -131,19 +131,39 @@ def filter_bbc_posts(articles):
 #TODO good news: FT, yahoo finance, BBC, Guardian?
 
 
+def get_bbc_links():
+    """
+    Scrapes multiple BBC news pages, combines and filters the articles.
+    
+    Returns:
+        list: A filtered list of unique article dictionaries.
+    """
+    urls = [
+        "https://www.bbc.co.uk/news/business/economy",
+        "https://www.bbc.co.uk/news/topics/cw9l5jelpl1t",
+        "https://www.bbc.co.uk/news/business"
+    ]
+    
+    all_articles = []
+    processed_urls = set()
 
+    for url in urls:
+        print(f"Scraping article links from: {url}")
+        try:
+            articles_from_page = get_latest_bbc_articles(url)
+            for article in articles_from_page:
+                if article['url'] not in processed_urls:
+                    all_articles.append(article)
+                    processed_urls.add(article['url'])
+        except Exception as e:
+            print(f"Could not scrape {url}: {e}")
 
-#todo REMOVE
-url="https://www.bbc.co.uk/news/business"
-
-links=get_latest_bbc_articles(url)
-# links = filter_bbc_posts(links) #TODO fix
-links = filter_bbc_posts(links)
-print(f"Found {len(links)} relevant articles to scrape.")
-# with open("bbc_business.html", "w", encoding="utf-8") as f:
-#     f.write(str(soup))
+    links = filter_bbc_posts(all_articles)
+    print(f"Found {len(links)} relevant articles to scrape.")
+    return links
 
 #TODO bring back
+links = get_bbc_links()
 scraped_articles = []
 for article_data in links:
     url = article_data.get("url")
