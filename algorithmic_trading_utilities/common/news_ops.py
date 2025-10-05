@@ -110,8 +110,24 @@ def get_latest_bbc_articles(url):
     return articles
 
 
+def filter_bbc_posts(articles):
+    """
+    Filters a list of BBC articles based on specific tags and the presence of a post time.
 
+    Args:
+        articles (list): A list of article dictionaries from get_latest_bbc_articles.
 
+    Returns:
+        list: A filtered list of article dictionaries.
+    """
+    allowed_tags = {"Business", "Technology", "Politics"}
+    # An empty list evaluates to False, so this keeps articles where post_time is not empty.
+    filtered_articles = [
+        article for article in articles
+        if article.get("tag") in allowed_tags and
+           any("ago" in s for s in article.get("post_time", []))
+    ]
+    return filtered_articles
 #TODO good news: FT, yahoo finance, BBC, Guardian?
 
 
@@ -121,7 +137,9 @@ def get_latest_bbc_articles(url):
 url="https://www.bbc.co.uk/news/business"
 
 links=get_latest_bbc_articles(url)
-# print(links)
+# links = filter_bbc_posts(links) #TODO fix
+links = filter_bbc_posts(links)
+print(f"Found {len(links)} relevant articles to scrape.")
 # with open("bbc_business.html", "w", encoding="utf-8") as f:
 #     f.write(str(soup))
 
