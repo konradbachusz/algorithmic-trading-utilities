@@ -4,18 +4,7 @@ import os
 import json
 from urllib.parse import urlparse
 import requests
-from datetime import date
-from bs4 import BeautifulSoup
-
-from crewai_tools import ScrapeWebsiteTool
-import json
-from urllib.parse import urlparse
-
-import time
-import os
-import json
-from urllib.parse import urlparse
-import requests
+from datetime import date, datetime
 from bs4 import BeautifulSoup
 
 def scrape_page(url):
@@ -220,8 +209,73 @@ def scrape_bbc_articles():
 #scrape_bbc_articles()
 
 
+def calculate_time_ago(pub_date_str):
+    """
+    Calculate relative time from a publication date string.
+    
+    Args:
+        pub_date_str (str): ISO format timestamp string like "2025-10-11T19:27:39Z"
+        
+    Returns:
+        str: Relative time format like "4h ago", "2d ago", etc.
+    """
+    if not pub_date_str:
+        return ""
+    
+    try:
+        # Parse the publication date
+        pub_date = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
+        
+        # Get current time (assuming UTC for consistency with Yahoo Finance)
+        current_time = datetime.now(pub_date.tzinfo)
+        
+        # Calculate the difference
+        time_diff = current_time - pub_date
+        
+        # Convert to appropriate units
+        total_seconds = int(time_diff.total_seconds())
+        
+        if total_seconds < 60:
+            return f"{total_seconds}s ago" if total_seconds > 1 else "1s ago"
+        elif total_seconds < 3600:  # Less than 1 hour
+            minutes = total_seconds // 60
+            return f"{minutes}m ago" if minutes > 1 else "1m ago"
+        elif total_seconds < 86400:  # Less than 1 day
+            hours = total_seconds // 3600
+            return f"{hours}h ago" if hours > 1 else "1h ago"
+        elif total_seconds < 604800:  # Less than 1 week
+            days = total_seconds // 86400
+            return f"{days}d ago" if days > 1 else "1d ago"
+        else:  # More than a week
+            weeks = total_seconds // 604800
+            return f"{weeks}w ago" if weeks > 1 else "1w ago"
+            
+    except (ValueError, AttributeError):
+        return ""
+
+
 def get_yahoo_news_links():
-    url="https://finance.yahoo.com/"
+    """
+    Scrapes Yahoo Finance homepage to get latest news links and their associated stock symbols.
+    
+    Returns:
+        dict: Dictionary containing news articles with their URLs and affected stock symbols.
+              Format: {
+                  'articles': [
+                      {
+                          'title': str,
+                          'url': str,
+                          'summary': str,
+                          'pub_date': str,
+                          'display_time': str,  # Relative time like "4h ago", "6h ago"
+                          'symbols': [str],  # List of stock symbols mentioned in the article
+                          'provider': str
+                      },
+                      ...
+                  ]
+              }
+    """
+    url = "https://finance.yahoo.com/"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
     }
@@ -231,21 +285,134 @@ def get_yahoo_news_links():
 
     soup = BeautifulSoup(response.content, "html.parser")
 
-    links = set()
+    # Find script tags containing JSON data for the news sections
+    script_tags = soup.find_all('script', {'type': 'application/json'})
     
-    # Find the main container for the news headlines using the specified class #TODO fix it 
-    headlines_container = soup.find("div", class_="hero-headlines hero-latest-news yf-1mjoczb")
-
-    if headlines_container:
-        # Find all 'a' tags with an 'href' attribute within the container
-        for a_tag in headlines_container.find_all("a", href=True):
-            href = a_tag['href']
-            # Yahoo news articles are often relative paths, so we build the full URL
-            if href.startswith('/'):
-                full_url = f"https://finance.yahoo.com{href}"
-                links.add(full_url)
+    articles_data = []
     
-    return list(links)
+    for script in script_tags:
+        script_content = script.get_text()
+        try:
+            # Parse the JSON content
+            json_data = json.loads(script_content)
+            
+            if 'body' in json_data:
+                try:
+                    body_content = json.loads(json_data['body'])
+                    
+                    # Look for data.main.stream structure (news articles)
+                    if ('data' in body_content and 
+                        isinstance(body_content['data'], dict) and 
+                        'main' in body_content['data'] and
+                        isinstance(body_content['data']['main'], dict) and
+                        'stream' in body_content['data']['main']):
+                        
+                        stream_data = body_content['data']['main']['stream']
+                        
+                        if isinstance(stream_data, list) and len(stream_data) > 0:
+                            for article_item in stream_data:
+                                if 'content' in article_item:
+                                    content = article_item['content']
+                                    
+                                    # Extract basic article information
+                                    pub_date = content.get('pubDate', '')
+                                    display_time = content.get('displayTime', '')
+                                    
+                                    # If display_time is empty or same as pub_date, calculate relative time
+                                    if not display_time or display_time == pub_date:
+                                        display_time = calculate_time_ago(pub_date)
+                                    else:
+                                        # If display_time is a timestamp, convert it to relative time
+                                        if 'T' in display_time and ('Z' in display_time or '+' in display_time):
+                                            display_time = calculate_time_ago(display_time)
+                                    
+                                    article_info = {
+                                        'title': content.get('title', ''),
+                                        'summary': content.get('summary', ''),
+                                        'pub_date': pub_date,
+                                        'display_time': display_time,
+                                        'provider': '',
+                                        'url': '',
+                                        'symbols': []
+                                    }
+                                    
+                                    # Get the article URL
+                                    if 'clickThroughUrl' in content and content['clickThroughUrl']:
+                                        if isinstance(content['clickThroughUrl'], dict):
+                                            article_info['url'] = content['clickThroughUrl'].get('url', '')
+                                        else:
+                                            article_info['url'] = str(content['clickThroughUrl'])
+                                    elif 'canonicalUrl' in content and content['canonicalUrl']:
+                                        if isinstance(content['canonicalUrl'], dict):
+                                            article_info['url'] = content['canonicalUrl'].get('url', '')
+                                        else:
+                                            article_info['url'] = str(content['canonicalUrl'])
+                                    
+                                    # Get provider information
+                                    if 'provider' in content and content['provider']:
+                                        article_info['provider'] = content['provider'].get('displayName', '')
+                                    
+                                    # Extract stock symbols if available
+                                    if 'finance' in content and content['finance']:
+                                        finance_data = content['finance']
+                                        if ('stockTickers' in finance_data and 
+                                            finance_data['stockTickers'] is not None and 
+                                            isinstance(finance_data['stockTickers'], list)):
+                                            symbols = [ticker['symbol'] for ticker in finance_data['stockTickers'] 
+                                                      if isinstance(ticker, dict) and 'symbol' in ticker]
+                                            article_info['symbols'] = symbols
+                                    
+                                    # Only add articles that have URLs
+                                    if article_info['url']:
+                                        articles_data.append(article_info)
+                                
+                except json.JSONDecodeError:
+                    continue
+                    
+        except json.JSONDecodeError:
+            continue
+    
+    return {'articles': articles_data}
 
-links = get_yahoo_news_links()
-print(f"Found {len(links)} Yahoo Finance links: {links}")
+
+def save_yahoo_news_to_json(filename=None):
+    """
+    Fetches the latest Yahoo Finance news and saves it to a JSON file.
+    
+    Args:
+        filename (str, optional): Custom filename for the JSON file. 
+                                If None, generates a timestamped filename.
+    
+    Returns:
+        tuple: (success: bool, message: str, filename: str)
+    """
+    try:
+        # Get the latest news articles
+        news_data = get_yahoo_news_links()
+        
+        # Generate filename if not provided
+        if filename is None:
+            today_str = date.today().strftime("%Y%m%d")
+            timestamp = datetime.now().strftime("%H%M%S")
+            filename = f"articles/yahoo_finance_news_{today_str}_{timestamp}.json"
+        
+        # Ensure the articles directory exists
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        
+        # Save to JSON file
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(news_data, f, indent=4, ensure_ascii=False)
+        
+        article_count = len(news_data.get('articles', []))
+        message = f"Successfully saved {article_count} articles to {filename}"
+        print(message)
+        
+        return True, message, filename
+        
+    except Exception as e:
+        error_message = f"Error saving Yahoo Finance news: {e}"
+        print(error_message)
+        return False, error_message, filename if 'filename' in locals() else None
+    
+#TODO remove
+save_yahoo_news_to_json()
