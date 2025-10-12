@@ -6,6 +6,7 @@ flake8==7.1.0
 trendet==0.7
 matplotlib==3.7.5
 yahooquery==2.3.7
+transformers==4.30.0
 lxml==4.9.3
 python-dotenv==1.0.0
 multitasking==0.0.11
@@ -15,3 +16,4 @@ crewai-tools==0.14.0
 alpaca-trade-api==0.26
 pytest==8.4.2
 pytest-mock==3.15.0
+torch==2.8.0
