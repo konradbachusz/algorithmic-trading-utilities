@@ -390,6 +390,10 @@ def save_yahoo_news_to_json(filename=None):
         # Get the latest news articles
         news_data = get_yahoo_news_links()
         
+        # Filter articles to exclude old ones and those without symbols
+        filtered_articles = filter_yahoo_news(news_data.get('articles', []))
+        news_data['articles'] = filtered_articles
+        
         # Generate filename if not provided
         if filename is None:
             today_str = date.today().strftime("%Y%m%d")
@@ -404,7 +408,7 @@ def save_yahoo_news_to_json(filename=None):
             json.dump(news_data, f, indent=4, ensure_ascii=False)
         
         article_count = len(news_data.get('articles', []))
-        message = f"Successfully saved {article_count} articles to {filename}"
+        message = f"Successfully saved {article_count} filtered articles to {filename}"
         print(message)
         
         return True, message, filename
@@ -414,5 +418,52 @@ def save_yahoo_news_to_json(filename=None):
         print(error_message)
         return False, error_message, filename if 'filename' in locals() else None
     
-#TODO remove
+
+def is_within_one_day_yahoo(pub_date_str):
+    """
+    Checks if the publication date is within one day from now.
+    
+    Args:
+        pub_date_str (str): ISO format timestamp string like "2025-10-11T19:27:39Z"
+        
+    Returns:
+        bool: True if within one day, False otherwise
+    """
+    if not pub_date_str:
+        return False
+    
+    try:
+        # Parse the publication date
+        pub_date = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
+        
+        # Get current time (assuming UTC for consistency)
+        current_time = datetime.now(pub_date.tzinfo)
+        
+        # Calculate the difference
+        time_diff = current_time - pub_date
+        
+        # Check if within 24 hours (86400 seconds)
+        return time_diff.total_seconds() <= 86400
+        
+    except (ValueError, AttributeError):
+        return False
+
+
+def filter_yahoo_news(articles):
+    """
+    Filters Yahoo Finance articles to exclude those older than 1 day and those with empty symbols.
+    
+    Args:
+        articles (list): List of article dictionaries from get_yahoo_news_links
+        
+    Returns:
+        list: Filtered list of articles
+    """
+    filtered_articles = [
+        article for article in articles
+        if article.get("symbols") and  # Exclude articles with empty symbols list
+        is_within_one_day_yahoo(article.get("pub_date"))  # Exclude articles older than 1 day
+    ]
+    return filtered_articles
+
 save_yahoo_news_to_json()
