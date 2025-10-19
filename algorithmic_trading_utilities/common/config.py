@@ -30,7 +30,7 @@ stream_data_wss = None
 
 # Ensure loss_threshold is defined at the top level for proper import
 loss_threshold = 0.05  # Set loss threshold for closing positions to 5%
-trailing_stop_loss_threshold = 0.1  # Set trailing stop loss threshold to 10%
+trailing_stop_loss_threshold = 0.05  # Set trailing stop loss threshold to 5%
 # TODO add remaining variables
 
 # setup clients

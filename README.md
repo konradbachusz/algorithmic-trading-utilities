@@ -365,7 +365,7 @@ algorithmic_trading_utilities/
 **Default Thresholds (from `config.py`):**
 ```python
 loss_threshold = 0.05  # 5% loss threshold for closing positions
-trailing_stop_loss_threshold = 0.1  # 10% trailing stop threshold
+trailing_stop_loss_threshold = 0.05  # 5% trailing stop loss threshold
 ```
 
 **Environment Variables Required:**
