@@ -1,10 +1,8 @@
 alpaca-py==0.42.1
 pandas==2.0.3
-numpy==1.24.4
 black==24.4.2
 flake8==7.1.0
 trendet==0.7
-matplotlib==3.7.5
 yahooquery==2.3.7
 lxml==4.9.3
 python-dotenv==1.0.0
