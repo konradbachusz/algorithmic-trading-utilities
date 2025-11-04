@@ -7,7 +7,7 @@ import time
 # TODO unit test and move to yfinance_ops.py
 
 
-def get_sp500_prices(start_date: str, end_date: str) -> pd.Series:
+def get_sp500_prices(start_date: str, end_date: str = None) -> pd.Series:
     """
     Get S&P 500 prices since a specified start date until end date (until today if end_date is not provided) using yfinance.
 
