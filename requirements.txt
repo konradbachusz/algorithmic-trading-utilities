@@ -1,23 +1,23 @@
-alpaca-py
-pandas
-black
-flake8
-trendet
-yahooquery
-lxml
-python-dotenv
-multitasking
-yfinance  # TODO fix this error to make it work with more recent version
-scikit-learn
-scipy
-pytest
-pytest-mock
-alpaca-trade-api
-beautifulsoup4
-crewai_tools
-matplotlib
-requests
-numpy
-seaborn
-selenium
-webdriver_manager
+alpaca-py==0.42.1
+pandas==2.0.3
+black==24.4.2
+flake8==7.1.0
+trendet==0.7
+yahooquery==2.3.7
+lxml==4.9.3
+python-dotenv==1.0.0
+multitasking==0.0.11
+yfinance==0.1.66
+scikit-learn==1.3.2  # Compatible with numpy 1.24.4
+scipy==1.11.4        # Compatible with numpy 1.24.4
+pytest==7.4.4
+pytest-mock==3.3.1
+alpaca-trade-api==3.2.0
+beautifulsoup4==4.14.2
+crewai_tools==1.1.0
+matplotlib==3.8.2    # Compatible with numpy 1.24.4
+requests==2.32.3
+numpy==1.24.4
+seaborn==0.13.2
+selenium==4.21.0
+webdriver_manager==4.0.1
