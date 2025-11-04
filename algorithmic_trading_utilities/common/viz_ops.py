@@ -202,15 +202,15 @@ class PerformanceViz:
         max_dd_idx = np.argmin(dd)
         ax.plot(
             x[max_dd_idx],
-            dd[max_dd_idx],
+            dd.iloc[max_dd_idx],
             marker="*",
             color="red",
             markersize=12,
             label="Max Drawdown",
         )
         ax.annotate(
-            f"{dd[max_dd_idx]:.2%}",
-            xy=(x[max_dd_idx], dd[max_dd_idx]),
+            f"{dd.iloc[max_dd_idx]:.2%}",
+            xy=(x[max_dd_idx], dd.iloc[max_dd_idx]),
             xytext=(7, -2),
             textcoords="offset points",
             color="red",
