@@ -166,6 +166,9 @@ cython_debug/
 
 # Environment variables
 .env
-venv3.10
-articles/
-articles_analysis.json
+
+# design ipynb notebooks
+*.ipynb
+
+# json settings
+*.json

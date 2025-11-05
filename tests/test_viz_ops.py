@@ -1,23 +1,44 @@
-import sys
-
-sys.path.insert(1, "algorithmic_trading_utilities")
 import pandas as pd
-import matplotlib.pyplot as plt
-from common.viz_ops import plot_time_series
+from algorithmic_trading_utilities.common.viz_ops import PerformanceViz
 
 
-class TestPlotTimeSeries:
+class TestPerformanceViz:
+    def test_init_with_pm(self, sample_data):
+        pm, portfolio, benchmark = sample_data
+        viz = PerformanceViz(pm=pm)
+        assert isinstance(viz.portfolio, pd.Series)
+        assert isinstance(viz.benchmark, pd.Series)
+        assert viz.portfolio.index.equals(portfolio.index)
+        assert viz.benchmark.index.equals(benchmark.index)
 
-    # plot multiple columns from a DataFrame with a DateTime index
-    def test_plot_multiple_columns_with_datetime_index(self):
+    def test_plot_equity_curve(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        fig = viz.plot_equity_curve(show=False)
+        assert fig is not None
+        assert len(fig.axes[0].lines) >= 1
 
-        # Create a sample DataFrame with DateTime index and multiple columns
-        dates = pd.date_range("20230101", periods=6)
-        data = {"A": [1, 2, 3, 4, 5, 6], "B": [2, 3, 4, 5, 6, 7]}
-        df = pd.DataFrame(data, index=dates)
+    def test_plot_drawdown_series(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        fig = viz.plot_drawdown_series(show=False)
+        assert fig is not None
 
-        # Plot the time series
-        plot_time_series(df)
+    def test_plot_returns_distribution(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        fig = viz.plot_returns_distribution(show=False)
+        assert fig is not None
 
-        # Check if the plot was created (this is a basic check)
-        assert plt.gcf().number == 1
+    def test_plot_rolling_sharpe(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        fig = viz.plot_rolling_sharpe(show=False)
+        assert fig is not None
+
+    def test_create_all_plots(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        figs = viz.create_all_plots(show=False)
+        assert isinstance(figs, list)
+        assert all(f is not None for f in figs)
