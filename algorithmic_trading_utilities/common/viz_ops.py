@@ -253,7 +253,7 @@ class PerformanceViz:
             alpha=0.7
         )
         
-        if self.benchmark is not None:
+        if self.benchmark is not None and len(self.benchmark) > 0:
             benchmark_returns = (self.benchmark - self.benchmark.iloc[0]) / self.benchmark.iloc[0] * 100
             ax.plot(
                 benchmark_returns.index,
