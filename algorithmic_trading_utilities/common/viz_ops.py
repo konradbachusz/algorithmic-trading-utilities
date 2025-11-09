@@ -227,6 +227,53 @@ class PerformanceViz:
             plt.show()
         return fig
 
+    def plot_cumulative_returns_timeseries(
+        self, show: bool = True, savepath: Optional[str] = None
+    ) -> plt.Figure:
+        """Plot cumulative returns time series for portfolio and benchmark.
+        
+        Returns are calculated as: (Current Value - Starting Value) / Starting Value * 100
+
+        Args:
+            show (bool, optional): Whether to display the plot. Defaults to True.
+            savepath (Optional[str], optional): Path to save the plot. Defaults to None.
+
+        Returns:
+            plt.Figure: Matplotlib Figure object.
+        """
+        fig = self._make_fig("Cumulative Returns Time Series")
+        ax = fig.axes[0]
+        
+        # Calculate cumulative returns as percentage change from start
+        portfolio_returns = (self.portfolio - self.portfolio.iloc[0]) / self.portfolio.iloc[0] * 100
+        ax.plot(
+            portfolio_returns.index,
+            portfolio_returns.values,
+            label="Portfolio Returns",
+            alpha=0.7
+        )
+        
+        if self.benchmark is not None:
+            benchmark_returns = (self.benchmark - self.benchmark.iloc[0]) / self.benchmark.iloc[0] * 100
+            ax.plot(
+                benchmark_returns.index,
+                benchmark_returns.values,
+                label="Benchmark Returns",
+                alpha=0.7,
+            )
+        
+        ax.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Cumulative Returns (%)")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        if savepath:
+            fig.savefig(savepath, bbox_inches="tight")
+        if show:
+            plt.show()
+        return fig
+
     def plot_rolling_volatility(
         self, window: int = 63, show: bool = True, savepath: Optional[str] = None
     ) -> plt.Figure:
@@ -448,6 +495,14 @@ class PerformanceViz:
             list: List of Matplotlib Figures.
         """
         figs = []
+        figs.append(
+            self.plot_cumulative_returns_timeseries(
+                show=show,
+                savepath=(out_prefix + "_returns_timeseries.png")
+                if out_prefix
+                else None,
+            )
+        )
         figs.append(
             self.plot_equity_curve(
                 show=show, savepath=(out_prefix + "_equity.png") if out_prefix else None
