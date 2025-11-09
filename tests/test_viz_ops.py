@@ -1,6 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for testing
+import numpy as np
 import pandas as pd
+from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
 from algorithmic_trading_utilities.common.viz_ops import PerformanceViz
 
 
@@ -66,7 +68,6 @@ class TestPerformanceViz:
         pm, portfolio, _ = sample_data
         # Create a new PerformanceMetrics instance and manually set benchmark to None
         # to bypass the automatic SP500 fetching
-        from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
         pm_no_benchmark = PerformanceMetrics(portfolio_equity=portfolio, benchmark_equity=pd.Series(dtype=float))
         pm_no_benchmark.benchmark = None
         pm_no_benchmark.benchmark_returns = None
@@ -78,12 +79,14 @@ class TestPerformanceViz:
         assert "Portfolio Returns" in labels
         assert "Benchmark Returns" not in labels
 
-    def test_plot_cumulative_returns_timeseries_calculation(self, sample_data):
+    def test_plot_cumulative_returns_timeseries_calculation(self):
         """Test that cumulative returns are calculated correctly."""
-        pm, portfolio, _ = sample_data
+        # Create mock portfolio data
+        dates = pd.date_range(start="2025-01-01", periods=10)
+        portfolio_values = pd.Series([10000, 10100, 10200, 10050, 10300, 10400, 10350, 10500, 10600, 10700], index=dates)
+        
         # Create a new PerformanceMetrics instance without benchmark
-        from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
-        pm_no_benchmark = PerformanceMetrics(portfolio_equity=portfolio, benchmark_equity=None)
+        pm_no_benchmark = PerformanceMetrics(portfolio_equity=portfolio_values, benchmark_equity=None)
         viz = PerformanceViz(pm=pm_no_benchmark)
         fig = viz.plot_cumulative_returns_timeseries(show=False)
         ax = fig.axes[0]
@@ -93,7 +96,7 @@ class TestPerformanceViz:
         plotted_returns = portfolio_line.get_ydata()
         
         # Calculate expected returns
-        expected_returns = (portfolio - portfolio.iloc[0]) / portfolio.iloc[0] * 100
+        expected_returns = (portfolio_values - portfolio_values.iloc[0]) / portfolio_values.iloc[0] * 100
         
         # First value should be 0%
         assert abs(plotted_returns[0]) < 0.01  # Close to 0
