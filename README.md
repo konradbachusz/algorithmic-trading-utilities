@@ -253,6 +253,57 @@ send_email_notification(
 )
 ```
 
+## Example Usage
+
+### Performance Metrics
+
+```python
+import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+from algorithmic_trading_utilities.common.viz_ops import PerformanceViz
+from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import get_portfolio_history
+from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
+
+
+# Get actual portfolio history
+portfolio_history = get_portfolio_history()
+portfolio_equity = pd.Series(
+    data=portfolio_history.equity,
+    index=pd.to_datetime(portfolio_history.timestamp, unit='s'),
+    name="portfolio_equity"
+)
+
+# Get S&P 500 benchmark data
+benchmark_data = get_sp500_prices("2025-04-08")
+benchmark_equity = pd.Series(
+    data=benchmark_data.iloc[:, 0].values,
+    index=pd.to_datetime(benchmark_data.index),
+    name="benchmark_equity"
+)
+
+# Align indices to common dates
+common_dates = portfolio_equity.index.intersection(benchmark_equity.index)
+portfolio_equity = portfolio_equity.loc[common_dates]
+benchmark_equity = benchmark_equity.loc[common_dates]
+
+# Normalize benchmark to start at same value as portfolio
+benchmark_equity = benchmark_equity / benchmark_equity.iloc[0] * portfolio_equity.iloc[0]
+
+pm = PerformanceMetrics(portfolio_equity, benchmark_equity)
+metrics = pm.calculate_all()
+
+viz = PerformanceViz(pm=pm, benchmark_equity=benchmark_equity)
+fig_equity = viz.create_all_plots(True)
+
+print("Performance Metrics:")
+for key, value in metrics.items():
+    print(f"{key}: {value}")
+```
+
 ## Library Structure
 
 ```bash
