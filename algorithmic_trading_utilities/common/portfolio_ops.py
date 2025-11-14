@@ -364,7 +364,8 @@ class PerformanceMetrics:
 
             if (
                 "Return" in label
-                or "Drawdown" in label
+                or "Max Drawdown" in label
+                or "Average Drawdown" in label
                 or "VaR" in label
                 or "CVaR" in label
                 or "Alpha" in label
