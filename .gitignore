@@ -124,6 +124,9 @@ celerybeat.pid
 # Environments
 .env
 .venv
+venv3.10
+.venv3.10
+venv3.10/
 env/
 venv/
 ENV/
@@ -166,6 +169,9 @@ cython_debug/
 
 # Environment variables
 .env
-venv3.10
-articles/
-articles_analysis.json
+
+# design ipynb notebooks
+*.ipynb
+
+# json settings
+*.json

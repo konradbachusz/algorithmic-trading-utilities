@@ -1,15 +1,24 @@
-alpaca-py==0.42.1
-pandas==2.0.3
-numpy==1.24.4
-black==24.4.2
-flake8==7.1.0
-trendet==0.7
-matplotlib==3.7.5
-yahooquery==2.3.7
-lxml==4.9.3
-python-dotenv==1.0.0
-multitasking==0.0.11
-yfinance==0.1.66 #TODO fix this error to make it work with more recent version
-alpaca-trade-api==0.26
-pytest==8.4.2
-pytest-mock==3.15.0
+alpaca-py>=0.42.1
+pandas~=2.0.3
+black~=24.4.2
+flake8~=7.1.0
+trendet~=0.7
+yahooquery~=2.3.7
+lxml~=4.9.3
+python-dotenv>=1.1.1
+multitasking~=0.0.11
+yfinance~=0.1.66 #TODO fix this error to make it work with more recent version of yfinance 0.2.6
+scikit-learn~=1.3.2
+scipy~=1.11.4
+pytest~=7.4.4
+pytest-mock~=3.3.1
+alpaca-trade-api>=3.2.0
+beautifulsoup4~=4.14.2
+crewai_tools~=1.1.0
+matplotlib~=3.8.2
+requests>=2.32.5  # Changed from 2.32.3 to satisfy crewai-tools
+numpy~=1.24.4
+seaborn~=0.13.2
+selenium~=4.21.0
+webdriver_manager~=4.0.1
+msgpack~=1.0.3

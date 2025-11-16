@@ -19,12 +19,14 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 ### For Local Development
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/your-username/algorithmic-trading-utilities.git
    cd algorithmic-trading-utilities
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -32,17 +34,21 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 ### Using as a Dependency in Your Project
 
 #### Method 1: Install directly via pip
+
 ```bash
 pip install git+https://github.com/your-username/algorithmic-trading-utilities.git
 ```
 
 #### Method 2: Add to requirements.txt
+
 Add this line to your project's `requirements.txt`:
-```
+
+```bash
 git+https://github.com/your-username/algorithmic-trading-utilities.git
 ```
 
 Then install with:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -50,6 +56,7 @@ pip install -r requirements.txt
 ### Environment Setup
 
 Create a `.env` file in your project root:
+
 ```bash
 PAPER_KEY="your_alpaca_paper_api_key"
 PAPER_SECRET="your_alpaca_paper_secret_key"
@@ -63,27 +70,13 @@ recipient_email="your_recipient_email@gmail.com"
 ### Portfolio Performance Analysis
 
 ```python
-from algorithmic_trading_utilities.common.portfolio_ops import (
-    calculate_performance_metrics, 
-    get_portfolio_and_benchmark_returns,
-    get_portfolio_and_benchmark_values
-)
+from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+
+# Initialize PerformanceMetrics with portfolio and optional benchmark
+pm = PerformanceMetrics(portfolio_equity=portfolio_series, benchmark_equity=benchmark_series)
 
 # Get comprehensive performance metrics
-metrics = calculate_performance_metrics()
-print(f"Annual Sharpe Ratio: {metrics['annual_sharpe_ratio']:.2f}")
-print(f"Total Return: {metrics['total_return']:.2f}%")
-print(f"Max Drawdown: {metrics['max_drawdown']:.2f}")
-print(f"Alpha: {metrics['alpha']:.4f}")
-print(f"Beta: {metrics['beta']:.4f}")
-
-# Compare portfolio vs S&P 500 (percentage returns)
-returns_df = get_portfolio_and_benchmark_returns()
-print(returns_df.tail())
-
-# Get absolute values for portfolio vs benchmark
-values_df = get_portfolio_and_benchmark_values()
-print(values_df.tail())
+metrics = pm.report()
 ```
 
 ### Order Management
@@ -260,9 +253,60 @@ send_email_notification(
 )
 ```
 
+## Example Usage
+
+### Performance Metrics
+
+```python
+import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+from algorithmic_trading_utilities.common.viz_ops import PerformanceViz
+from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import get_portfolio_history
+from algorithmic_trading_utilities.data.yfinance_ops import get_sp500_prices
+
+
+# Get actual portfolio history
+portfolio_history = get_portfolio_history()
+portfolio_equity = pd.Series(
+    data=portfolio_history.equity,
+    index=pd.to_datetime(portfolio_history.timestamp, unit='s'),
+    name="portfolio_equity"
+)
+
+# Get S&P 500 benchmark data
+benchmark_data = get_sp500_prices("2025-04-08")
+benchmark_equity = pd.Series(
+    data=benchmark_data.iloc[:, 0].values,
+    index=pd.to_datetime(benchmark_data.index),
+    name="benchmark_equity"
+)
+
+# Align indices to common dates
+common_dates = portfolio_equity.index.intersection(benchmark_equity.index)
+portfolio_equity = portfolio_equity.loc[common_dates]
+benchmark_equity = benchmark_equity.loc[common_dates]
+
+# Normalize benchmark to start at same value as portfolio
+benchmark_equity = benchmark_equity / benchmark_equity.iloc[0] * portfolio_equity.iloc[0]
+
+pm = PerformanceMetrics(portfolio_equity, benchmark_equity)
+metrics = pm.calculate_all()
+
+viz = PerformanceViz(pm=pm, benchmark_equity=benchmark_equity)
+fig_equity = viz.create_all_plots(True)
+
+print("Performance Metrics:")
+for key, value in metrics.items():
+    print(f"{key}: {value}")
+```
+
 ## Library Structure
 
-```
+```bash
 algorithmic_trading_utilities/
 ├── data/
 │   ├── get_data.py          # Alpaca data operations
@@ -285,55 +329,70 @@ algorithmic_trading_utilities/
 
 ### Portfolio Analytics (`common.portfolio_ops`)
 
-**Performance Metrics Functions:**
-- `get_average_return(equity)` - Daily average return
-- `get_total_return(equity)` - Total portfolio return percentage
-- `get_cumulative_return(equity)` - Cumulative return calculation
-- `get_std_dev(equity)` - Standard deviation of returns
-- `get_max_drawdown(equity)` - Maximum drawdown analysis
+**Performance Metrics Methods:**
+
+- `average_return()` – Daily average return
+- `total_return()` – Total portfolio return from start to end
+- `std_dev()` – Standard deviation of returns
+- `max_drawdown()` – Maximum drawdown (fraction)
+- `average_drawdown()` – Average drawdown (fraction)
+- `drawdown_duration()` – Longest duration of continuous drawdown
 
 **Risk-Adjusted Metrics:**
-- `get_sharpe_ratio(avg_return, std_dev, risk_free_rate)` - Sharpe ratio
-- `get_annualised_sharpe_ratio(sharpe_ratio)` - Annualized Sharpe ratio
-- `get_sortino_ratio(avg_return, downside_dev, risk_free_rate)` - Sortino ratio
-- `get_annualised_sortino_ratio(sortino_ratio)` - Annualized Sortino ratio
-- `get_alpha(portfolio_returns, benchmark_returns, risk_free_rate)` - Alpha vs benchmark
-- `get_beta(portfolio_returns, benchmark_returns)` - Beta calculation
+
+- `sharpe_ratio()` – Daily Sharpe ratio
+- `annualised_sharpe()` – Annualized Sharpe ratio
+- `sortino_ratio()` – Daily Sortino ratio
+- `annualised_sortino()` – Annualized Sortino ratio
+- `calmar_ratio()` – Annual return divided by max drawdown
+- `alpha_beta()` – CAPM alpha and beta vs benchmark
+- `rolling_alpha_beta(window=252)` – Rolling alpha and beta over a specified window
+
+**Return Distribution Metrics:**
+
+- `return_distribution_stats(alpha=0.05)` – Skewness, kurtosis, VaR, and CVaR
 
 **Comprehensive Analysis:**
-- `calculate_performance_metrics()` - Returns all metrics as dictionary
-- `get_portfolio_and_benchmark_values()` - Portfolio vs S&P 500 values
-- `get_portfolio_and_benchmark_returns()` - Portfolio vs S&P 500 percentage returns
+
+- `calculate_all()` – Returns all performance metrics as a dictionary
+- `calculate_benchmark_metrics()` – Returns benchmark metrics (alpha=0, beta=1 if benchmark provided)
+- `report()` – Prints a formatted comparison of strategy vs benchmark metrics
 
 ### Order Management (`brokers.alpaca.orders`)
 
 **Order Placement:**
+
 - `place_order(symbol, quantity, side, type, time_in_force, **kwargs)` - Place various order types
 - `place_trailing_stop_order(symbol, quantity, side, trail_percent)` - Trailing stops
 
 **Order Retrieval:**
+
 - `get_orders()` - Get all open orders
 - `get_current_trailing_stop_orders()` - Get active trailing stop orders
 - `get_orders_symbol_list(orders)` - Extract symbols from orders
 - `get_orders_to_cancel()` - Identify non-trailing stop orders
 
 **Order Cancellation:**
+
 - `cancel_orders()` - Cancel all orders with retry logic
 - `cancel_order_by_symbol(symbol)` - Cancel orders for specific symbol
 
 ### Position Management (`brokers.alpaca.positions`)
 
 **Position Retrieval:**
+
 - `get_open_positions()` - Get all open positions with formatted data
 - `get_positions_without_trailing_stop_loss()` - Find unprotected positions
 - `get_positions_symbol_list(positions)` - Extract symbols from positions
 
 **Position Management:**
+
 - `close_positions_below_threshold(threshold)` - Close losing positions
 
 ### Data Operations (`data/`)
 
 #### Alpaca Data (`get_data.py`)
+
 - `get_assets(trading_client)` - Retrieve tradeable assets
 - `get_asset_list(assets)` - Extract asset symbols from assets
 - `get_historical_data(symbol, client)` - Historical price data (365 days)
@@ -341,21 +400,26 @@ algorithmic_trading_utilities/
 - `get_asset_df(assets)` - Convert asset data to DataFrame
 
 #### Yahoo Finance (`yfinance_ops.py`)
+
 - `get_sp500_prices(start_date)` - S&P 500 benchmark data
 - `get_stock_gainers_table()` - Daily large-cap gainers with retry logic
 
 ### Quantitative Tools (`common.quantitative_tools`)
+
 - `remove_highly_correlated_columns(df, threshold)` - Remove correlated features
 
 ### Visualization (`common.viz_ops`)
+
 - `plot_time_series(df)` - General time series plotting
 - `compare_portfolio_and_benchmark(df, title)` - Portfolio vs benchmark charts
 - `plot_portfolio(df)` - Portfolio-specific plotting (handles Series/DataFrame)
 
 ### Email Notifications (`common.email_ops`)
+
 - `send_email_notification(subject, message, type)` - Gmail SMTP notifications with timestamps
 
 ### Configuration (`common.config`)
+
 - Trading client setup with paper trading configuration
 - Threshold settings (`loss_threshold`, `trailing_stop_loss_threshold`)
 - API key management with environment variables
@@ -363,12 +427,14 @@ algorithmic_trading_utilities/
 ## Configuration Variables
 
 **Default Thresholds (from `config.py`):**
+
 ```python
 loss_threshold = 0.05  # 5% loss threshold for closing positions
 trailing_stop_loss_threshold = 0.05  # 5% trailing stop loss threshold
 ```
 
 **Environment Variables Required:**
+
 ```bash
 # Alpaca API (Paper Trading)
 PAPER_KEY="your_alpaca_paper_api_key"
@@ -382,21 +448,27 @@ recipient_email="your_recipient_email@gmail.com"
 
 ## Performance Metrics Dictionary
 
-`calculate_performance_metrics()` returns:
+`calculate_all()` returns:
 
 ```python
 {
     'average_return': float,        # Daily average return
-    'total_return': float,          # Total return percentage
-    'cumulative_return': float,     # Cumulative return percentage  
-    'std_dev': float,              # Standard deviation of returns
-    'sharpe_ratio': float,         # Daily Sharpe ratio
-    'annual_sharpe_ratio': float,  # Annualized Sharpe ratio
-    'sortino_ratio': float,        # Daily Sortino ratio
-    'annual_sortino_ratio': float, # Annualized Sortino ratio
-    'max_drawdown': float,         # Maximum drawdown
-    'alpha': float,                # Alpha vs S&P 500
-    'beta': float                  # Beta vs S&P 500
+    'total_return': float,          # Total return from start to end
+    'std_dev': float,               # Standard deviation of returns
+    'sharpe_ratio': float,          # Daily Sharpe ratio
+    'annualised_sharpe': float,     # Annualized Sharpe ratio
+    'sortino_ratio': float,         # Daily Sortino ratio
+    'annualised_sortino': float,    # Annualized Sortino ratio
+    'max_drawdown': float,          # Maximum drawdown (fraction)
+    'average_drawdown': float,      # Average drawdown (fraction)
+    'drawdown_duration': int,       # Longest duration of continuous drawdown
+    'skewness': float,              # Skewness of daily returns
+    'kurtosis': float,              # Kurtosis of daily returns
+    'VaR_5%': float,                # Value at Risk (5% quantile)
+    'CVaR_5%': float,               # Conditional Value at Risk (average of worst 5%)
+    'calmar_ratio': float,          # Annual return / max drawdown
+    'alpha': float,                 # Alpha vs benchmark
+    'beta': float                   # Beta vs benchmark
 }
 ```
 
@@ -405,22 +477,26 @@ recipient_email="your_recipient_email@gmail.com"
 The library provides access to 200+ market screeners including popular ones like:
 
 **Momentum Screeners:**
+
 - `day_gainers` - Daily top gainers
 - `day_losers` - Daily top losers  
 - `small_cap_gainers` - Small cap momentum
 - `most_actives` - Highest volume stocks
 
 **Value Screeners:**
+
 - `undervalued_large_caps` - Value large caps
 - `fair_value_screener` - Undervalued with strong growth
 - `undervalued_growth_stocks` - Growth at reasonable prices
 
 **Sector Screeners:**
+
 - `growth_technology_stocks` - Tech growth plays
 - `ms_technology`, `ms_healthcare`, `ms_energy` - Sector-specific
 - `top_energy_us` - Energy sector leaders
 
 **Investment Vehicles:**
+
 - `top_etfs` - Top performing ETFs
 - `high_yield_bond` - High-yield bond funds
 
@@ -429,11 +505,13 @@ The library provides access to 200+ market screeners including popular ones like
 ## Testing
 
 Run the comprehensive test suite:
+
 ```bash
 pytest tests/ -v -s
 ```
 
 **Test Coverage:**
+
 - `test_portfolio_ops.py` - Portfolio analytics and metrics (including alpha/beta)
 - `test_orders.py` - Order management functionality
 - `test_positions.py` - Position management operations
@@ -480,6 +558,7 @@ MIT License - see LICENSE file for details.
 ## Support
 
 For issues and questions:
+
 - **GitHub Issues**: Report bugs and request features
 - **Documentation**: Check docstrings in each module
 - **Examples**: Review usage patterns in this README
@@ -493,4 +572,3 @@ For issues and questions:
 - **Email System**: Gmail SMTP notifications with timestamps for trading events
 - **Testing**: Comprehensive test suite with mocking for all modules
 - **Configuration**: Centralized config with environment variable management
-
