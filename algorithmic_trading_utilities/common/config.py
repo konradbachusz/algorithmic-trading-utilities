@@ -30,7 +30,7 @@ stream_data_wss = None
 
 # Ensure loss_threshold is defined at the top level for proper import
 loss_threshold = 0.05  # Set loss threshold for closing positions to 5%
-trailing_stop_loss_threshold = 0.1  # Set trailing stop loss threshold to 10%
+trailing_stop_loss_threshold = 0.05  # Set trailing stop loss threshold to 5%
 # TODO add remaining variables
 
 # setup clients
@@ -40,5 +40,6 @@ trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=pap
 # LLM Model configuration
 model = "gemma3:1b"
 ollama_url = "http://localhost:11434/api/generate"
+sentiment_model = "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis"
 ## PROD ##
 # TODO

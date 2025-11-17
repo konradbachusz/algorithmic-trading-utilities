@@ -21,6 +21,11 @@ class TestSendEmailNotification:
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_server
 
+        # Mock datetime to freeze time
+        fixed_datetime = datetime(2025, 11, 16, 10, 33, 54)
+        mock_datetime = mocker.patch("common.email_ops.datetime")
+        mock_datetime.now.return_value = fixed_datetime
+
         # Mock environment variables
         mocker.patch.dict(
             os.environ,
@@ -45,7 +50,7 @@ class TestSendEmailNotification:
         mock_server.sendmail.assert_called_once_with(
             os.environ["web_app_email"],
             os.environ["recipient_email"],
-            f"""Subject: {subject} {type} Notification {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} BST
+            f"""Subject: {subject} {type} Notification {fixed_datetime.strftime("%Y-%m-%d %H:%M:%S")} BST
 
     {notification}
 

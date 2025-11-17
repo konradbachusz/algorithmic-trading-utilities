@@ -51,9 +51,9 @@ class PerformanceMetrics:
             self.portfolio = pd.Series(portfolio_equity)
         else:
             self.portfolio = get_portfolio_history()
-        assert isinstance(self.portfolio.index, pd.DatetimeIndex), (
-            "portfolio index must be a DatetimeIndex"
-        )
+        assert isinstance(
+            self.portfolio.index, pd.DatetimeIndex
+        ), "portfolio index must be a DatetimeIndex"
         if benchmark_equity is not None:
             self.benchmark = pd.Series(benchmark_equity)
         else:
