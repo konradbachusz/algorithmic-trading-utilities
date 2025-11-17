@@ -8,6 +8,8 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 - **Order Management**: Place market, limit, and trailing stop orders with comprehensive error handling
 - **Position Management**: Monitor positions, manage trailing stops, and close positions based on thresholds
 - **Data Management**: Historical and real-time data from Alpaca and Yahoo Finance APIs
+- **News Scraping**: Web scraping utilities with BeautifulSoup for financial news extraction
+- **Sentiment Analysis**: AI-powered sentiment analysis using pre-trained financial news models
 - **Quantitative Tools**: Correlation analysis and data preprocessing utilities
 - **Email Notifications**: Automated alerts for trade execution and system events
 - **Yahoo Finance Integration**: Access to market screeners and S&P 500 benchmark data
@@ -233,6 +235,44 @@ plot_portfolio(returns_df["Portfolio"])
 plot_time_series(comparison_df)
 ```
 
+### News Scraping
+
+```python
+from algorithmic_trading_utilities.common.news_ops import (
+    scrape_with_beautifulsoup,
+    is_within_one_day,
+    calculate_time_ago
+)
+
+# Scrape financial news from a URL
+url = "https://finance.yahoo.com/news/apple-earnings"
+text_content = scrape_with_beautifulsoup(url)
+
+
+# Calculate relative time from ISO timestamp
+pub_date = "2025-10-11T19:27:39Z"
+time_ago = calculate_time_ago(pub_date)
+print(f"Posted: {time_ago}")  # Output: "4h ago", "2d ago", etc.
+```
+
+### Sentiment Analysis
+
+```python
+from algorithmic_trading_utilities.common.sentiment_ops import analyze_sentiment
+
+# Analyze sentiment of financial news
+text = "The company reported record profits and strong growth this quarter."
+result = analyze_sentiment(text)
+
+print(f"Sentiment: {result[0]['label']}")  # positive/negative/neutral
+print(f"Confidence: {result[0]['score']:.2%}")  # 95%
+
+# Example with negative sentiment
+bearish_text = "The company faces bankruptcy and massive losses."
+result = analyze_sentiment(bearish_text)
+# Returns: [{'label': 'negative', 'score': 0.88}]
+```
+
 ### Email Notifications
 
 ```python
@@ -319,6 +359,8 @@ algorithmic_trading_utilities/
 ├── common/
 │   ├── portfolio_ops.py     # Portfolio analytics
 │   ├── quantitative_tools.py # Data analysis utilities
+│   ├── news_ops.py          # News scraping utilities
+│   ├── sentiment_ops.py     # Sentiment analysis with AI
 │   ├── email_ops.py         # Email notifications
 │   ├── viz_ops.py           # Visualization utilities
 │   └── config.py            # Configuration and API setup
@@ -407,6 +449,26 @@ algorithmic_trading_utilities/
 ### Quantitative Tools (`common.quantitative_tools`)
 
 - `remove_highly_correlated_columns(df, threshold)` - Remove correlated features
+
+### News Operations (`common.news_ops`)
+
+**Web Scraping:**
+
+- `scrape_with_beautifulsoup(url)` - Extract text content from financial news websites
+
+**Time Utilities:**
+
+- `is_within_one_day(post_time_list)` - Check if post is within 24 hours (minutes, hours, or 1 day)
+- `calculate_time_ago(pub_date_str)` - Convert ISO timestamp to relative time format (e.g., "4h ago", "2d ago")
+
+### Sentiment Analysis (`common.sentiment_ops`)
+
+**AI-Powered Analysis:**
+
+- `analyze_sentiment(text)` - Analyze sentiment using DistilRoBERTa model fine-tuned on financial news
+  - Returns: `[{'label': 'positive'|'negative'|'neutral', 'score': float}]`
+  - Model: `mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis`
+  - Optimized for financial market sentiment detection
 
 ### Visualization (`common.viz_ops`)
 
@@ -517,6 +579,8 @@ pytest tests/ -v -s
 - `test_positions.py` - Position management operations
 - `test_get_data.py` - Alpaca data retrieval
 - `test_yfinance_ops.py` - Yahoo Finance operations
+- `test_news_ops.py` - News scraping and time utilities
+- `test_sentiment_ops.py` - Sentiment analysis with AI models
 - `test_quantitative_tools.py` - Quantitative analysis utilities
 - `test_viz_ops.py` - Visualization functions
 - `test_email_ops.py` - Email notification system
@@ -532,6 +596,8 @@ The library includes robust error handling:
 - **Missing Data**: Returns appropriate defaults (None, empty DataFrame)
 - **Order Management**: Comprehensive error handling for trading operations
 - **Email Notifications**: Built-in success/failure notification system
+- **Web Scraping**: Exception handling for HTTP errors and request failures
+- **Sentiment Analysis**: Model loading with error handling for missing dependencies
 
 ## Risk Disclaimer
 
