@@ -231,7 +231,7 @@ class PerformanceViz:
         self, show: bool = True, savepath: Optional[str] = None
     ) -> plt.Figure:
         """Plot cumulative returns time series for portfolio and benchmark.
-        
+
         Returns are calculated as: (Current Value - Starting Value) / Starting Value * 100
 
         Args:
@@ -243,25 +243,29 @@ class PerformanceViz:
         """
         fig = self._make_fig("Cumulative Returns Time Series")
         ax = fig.axes[0]
-        
+
         # Calculate cumulative returns as percentage change from start
-        portfolio_returns = (self.portfolio - self.portfolio.iloc[0]) / self.portfolio.iloc[0] * 100
+        portfolio_returns = (
+            (self.portfolio - self.portfolio.iloc[0]) / self.portfolio.iloc[0] * 100
+        )
         ax.plot(
             portfolio_returns.index,
             portfolio_returns.values,
             label="Portfolio Returns",
-            alpha=0.7
+            alpha=0.7,
         )
-        
+
         if self.benchmark is not None and len(self.benchmark) > 0:
-            benchmark_returns = (self.benchmark - self.benchmark.iloc[0]) / self.benchmark.iloc[0] * 100
+            benchmark_returns = (
+                (self.benchmark - self.benchmark.iloc[0]) / self.benchmark.iloc[0] * 100
+            )
             ax.plot(
                 benchmark_returns.index,
                 benchmark_returns.values,
                 label="Benchmark Returns",
                 alpha=0.7,
             )
-        
+
         ax.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
         ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         ax.set_xlabel("Date")
@@ -498,9 +502,9 @@ class PerformanceViz:
         figs.append(
             self.plot_cumulative_returns_timeseries(
                 show=show,
-                savepath=(out_prefix + "_returns_timeseries.png")
-                if out_prefix
-                else None,
+                savepath=(
+                    (out_prefix + "_returns_timeseries.png") if out_prefix else None
+                ),
             )
         )
         figs.append(
@@ -523,9 +527,9 @@ class PerformanceViz:
         figs.append(
             self.plot_rolling_volatility(
                 show=show,
-                savepath=(out_prefix + "_rolling_volatility.png")
-                if out_prefix
-                else None,
+                savepath=(
+                    (out_prefix + "_rolling_volatility.png") if out_prefix else None
+                ),
             )
         )
         figs.append(
