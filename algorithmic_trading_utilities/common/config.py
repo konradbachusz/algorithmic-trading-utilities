@@ -40,5 +40,6 @@ trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=pap
 # LLM Model configuration
 model = "gemma3:1b"
 ollama_url = "http://localhost:11434/api/generate"
+sentiment_model = "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis"
 ## PROD ##
 # TODO

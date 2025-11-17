@@ -3,11 +3,18 @@ from transformers import pipeline
 import json
 import os
 import glob
+import sys
 
-# TODO move config
+sys.path.insert(1, "algorithmic_trading_utilities")
+
+try:
+    from common.config import sentiment_model
+except ImportError:
+    from algorithmic_trading_utilities.common.config import sentiment_model
+
 pipe = pipeline(
     "text-classification",
-    model="mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis",
+    model=sentiment_model,
 )
 
 

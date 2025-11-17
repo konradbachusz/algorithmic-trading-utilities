@@ -127,4 +127,3 @@ class TestAnalyzeSentiment(unittest.TestCase):
         self.assertEqual(result[0]["label"], "positive")
         self.assertAlmostEqual(result[0]["score"], 0.87)
         mock_pipe.assert_called_once_with(text)
-
