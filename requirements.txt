@@ -7,7 +7,7 @@ yahooquery~=2.3.7
 lxml~=4.9.3
 python-dotenv>=1.1.1
 multitasking~=0.0.11
-yfinance~=0.1.66 #TODO fix this error to make it work with more recent version of yfinance 0.2.6
+yfinance==0.1.66 #TODO fix this error to make it work with more recent version of yfinance==0.2.6
 scikit-learn~=1.3.2
 scipy~=1.11.4
 pytest~=7.4.4
@@ -22,3 +22,6 @@ seaborn~=0.13.2
 selenium~=4.21.0
 webdriver_manager~=4.0.1
 msgpack~=1.0.3
+torch==2.8.0
+tokenizers==0.13.3
+transformers==4.30.0
