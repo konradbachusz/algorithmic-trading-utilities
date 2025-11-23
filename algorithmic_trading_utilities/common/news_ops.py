@@ -1,4 +1,5 @@
 import requests
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 
@@ -47,6 +48,58 @@ def is_within_one_day(post_time_list: list) -> bool:
     if "day" in time_string and ("1 day" in time_string or "a day" in time_string):
         return True
     return False
+
+
+def is_within_15_mins(display_time_str):
+    """
+    Checks if the article is within 15 minutes based on the display time string.
+
+    Args:
+        display_time_str (str): Relative time string like "4m ago", "21h ago", "2 days ago"
+
+    Returns:
+        bool: True if within 15 minutes, False otherwise
+    """
+    if not display_time_str:
+        return False
+
+    try:
+        # Remove "ago" and strip whitespace
+        time_part = display_time_str.lower().replace("ago", "").strip()
+
+        # Extract number and unit
+        match = re.match(r"(\d+)\s*([a-z]+)", time_part)
+
+        if not match:
+            return False
+
+        value = int(match.group(1))
+        unit = match.group(2)
+
+        # Check if within 15 minutes
+        if unit in ["m", "min", "mins", "minute", "minutes"]:
+            return value <= 15
+        elif unit in [
+            "h",
+            "hr",
+            "hrs",
+            "hour",
+            "hours",
+            "d",
+            "day",
+            "days",
+            "w",
+            "week",
+            "weeks",
+        ]:
+            return False
+        elif unit in ["s", "sec", "secs", "second", "seconds"]:
+            return True  # Seconds are always within 15 minutes
+        else:
+            return False
+
+    except (ValueError, AttributeError):
+        return False
 
 
 def calculate_time_ago(pub_date_str):

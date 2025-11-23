@@ -44,3 +44,8 @@ docs = [
 [tool.setuptools.packages.find]
 where = [""]
 include = ["algorithmic_trading_utilities*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["venv*", ".git", "dist", "build", "*.egg"]
+addopts = "--ignore=venv3.10"

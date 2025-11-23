@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from algorithmic_trading_utilities.common.news_ops import (
     scrape_with_beautifulsoup,
     is_within_one_day,
+    is_within_15_mins,
     calculate_time_ago,
 )
 
@@ -104,6 +105,84 @@ class TestIsWithinOneDay(TestNewsOps):
         result = is_within_one_day(
             ["2 hours ago"]
         )  # Changed to lowercase since function converts to lowercase
+        self.assertTrue(result)
+
+
+class TestIsWithin15Mins(TestNewsOps):
+
+    def test_is_within_15_mins_empty_string(self):
+        """Test with empty display time string."""
+        result = is_within_15_mins("")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_none(self):
+        """Test with None display time."""
+        result = is_within_15_mins(None)
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_invalid_format(self):
+        """Test with invalid format."""
+        result = is_within_15_mins("invalid format")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_seconds(self):
+        """Test with seconds - always within 15 minutes."""
+        result = is_within_15_mins("30s ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_within_threshold(self):
+        """Test with minutes within 15 minute threshold."""
+        result = is_within_15_mins("10m ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_at_threshold(self):
+        """Test with exactly 15 minutes."""
+        result = is_within_15_mins("15m ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_over_threshold(self):
+        """Test with minutes over 15 minute threshold."""
+        result = is_within_15_mins("20m ago")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_hours(self):
+        """Test with hours - always outside 15 minutes."""
+        result = is_within_15_mins("1h ago")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_days(self):
+        """Test with days - always outside 15 minutes."""
+        result = is_within_15_mins("1d ago")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_weeks(self):
+        """Test with weeks - always outside 15 minutes."""
+        result = is_within_15_mins("1w ago")
+        self.assertFalse(result)
+
+    def test_is_within_15_mins_minute_singular(self):
+        """Test with singular 'minute'."""
+        result = is_within_15_mins("5 minute ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_minutes_plural(self):
+        """Test with plural 'minutes'."""
+        result = is_within_15_mins("12 minutes ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_mixed_case(self):
+        """Test with mixed case input."""
+        result = is_within_15_mins("8M AGO")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_no_space(self):
+        """Test with no space between number and unit."""
+        result = is_within_15_mins("7m ago")
+        self.assertTrue(result)
+
+    def test_is_within_15_mins_extra_whitespace(self):
+        """Test with extra whitespace."""
+        result = is_within_15_mins("  10  m  ago  ")
         self.assertTrue(result)
 
 
