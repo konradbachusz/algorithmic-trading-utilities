@@ -17,4 +17,5 @@ data = requests.get(url, params).json()
 print(data['bids'])
 print  (data['asks'])
 print  (data['lastUpdateId'])
+
 print(data.keys())
