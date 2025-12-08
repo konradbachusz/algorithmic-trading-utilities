@@ -19,3 +19,6 @@ print  (data['asks'])
 print  (data['lastUpdateId'])
 
 print(data.keys())
+
+print("Highest Bid:", data['bids'][0])
+print("Lowest Ask:", data['asks'][0])
