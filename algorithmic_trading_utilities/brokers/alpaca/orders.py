@@ -207,12 +207,14 @@ def cancel_orders():
 
 def place_trailing_stop_order(symbol, quantity, side, trail_percent="10"):
     """
-    Place a trailing stop order.
+    Place a trailing stop order for both long and short positions.
 
     Parameters:
         symbol (str): The symbol of the asset to trade.
         quantity (int): The quantity of the asset to trade.
         side (str): The side of the initial order ('buy' or 'sell').
+                   For long positions (buy), places a sell trailing stop.
+                   For short positions (sell), places a buy trailing stop.
         trail_percent (str): The trailing percentage for the stop order.
 
     Returns:
@@ -223,11 +225,16 @@ def place_trailing_stop_order(symbol, quantity, side, trail_percent="10"):
     base_url = "https://paper-api.alpaca.markets"
     api = tradeapi.REST(key_id=api_key, secret_key=secret_key, base_url=base_url)
     try:
+        # Determine the trailing stop side based on position type
+        # Long position (buy): need sell trailing stop to close
+        # Short position (sell): need buy trailing stop to close
+        stop_side = "sell" if side.lower() == "buy" else "buy"
+
         # Submit trailing stop loss order
         trailing_stop_response = api.submit_order(
             symbol=symbol,
             qty=quantity,
-            side="sell" if side == "buy" else "buy",  # Opposite of the initial order
+            side=stop_side,  # Opposite of the initial order
             type="trailing_stop",
             time_in_force="gtc",
             trail_percent=trail_percent,
@@ -238,7 +245,7 @@ def place_trailing_stop_order(symbol, quantity, side, trail_percent="10"):
             print(f"Skipping {symbol} as the asset is not active: {e}")
             return None  # Proceed to the next order
         else:
-            print(f"Error placing order for {symbol}: {e}")
+            print(f"Error placing trailing stop order for {symbol}: {e}")
             return None
 
 
