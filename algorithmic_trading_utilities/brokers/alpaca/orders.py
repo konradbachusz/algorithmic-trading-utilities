@@ -119,15 +119,21 @@ def get_orders():
 
 def get_current_trailing_stop_orders():
     """
-    Retrieve active trailing stop orders.
+    Retrieve active trailing stop orders for both long and short positions.
 
     Returns:
-        list: A list of trailing stop orders with a status of OPEN.
+        list: A list of trailing stop orders with a status of OPEN (includes both BUY and SELL orders).
     """
-    # Filtering by active SELL orders. This isn't ideal when it comes to short selling. Trailing stop orders ids may have to be recorded somewhere when placed
-    trailing_stop_orders = trading_client.get_orders(
-        filter=GetOrdersRequest(side=OrderSide.SELL, status=QueryOrderStatus.OPEN)
+    # Get all open orders and filter for trailing stop type
+    # This includes both SELL trailing stops (for long positions) and BUY trailing stops (for short positions)
+    all_open_orders = trading_client.get_orders(
+        filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
     )
+    
+    # Filter for trailing stop orders only
+    trailing_stop_orders = [
+        order for order in all_open_orders if order.order_type == "trailing_stop"
+    ]
     return trailing_stop_orders
 
 
