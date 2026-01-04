@@ -255,6 +255,58 @@ def place_trailing_stop_order(symbol, quantity, side, trail_percent="10"):
             return None
 
 
+def place_trailing_stop_losses_funct(threshold):
+    """
+    Place trailing stop loss orders for positions without existing trailing stop losses.
+
+    Parameters:
+        threshold (float): The trailing stop loss threshold as a percentage (e.g., 0.1 for 10%).
+
+    Returns:
+        int: The total number of trailing stop loss orders placed.
+    """
+    # Import here to avoid circular dependency with positions.py
+    from algorithmic_trading_utilities.brokers.alpaca.positions import (
+        get_positions_without_trailing_stop_loss,
+    )
+
+    trailing_stop_count = 0  # Counter for trailing stop loss orders
+    try:
+        positions_without_trailing_stop = get_positions_without_trailing_stop_loss()
+        print("positions_without_trailing_stop", positions_without_trailing_stop)
+        print(len(positions_without_trailing_stop))
+        for position in positions_without_trailing_stop:
+            quantity_int = int(position["quantity"])
+            if quantity_int != 0:  # Handle both positive and negative quantities
+                trail_percent = str(
+                    int(threshold * 100)
+                )  # Convert threshold to percentage
+
+                # Use absolute value for quantity to handle both long and short positions
+                abs_quantity = abs(quantity_int)
+
+                print(
+                    f"Placing trailing stop loss order for {position['symbol']} at {trail_percent}%"
+                )
+                try:
+                    result = place_trailing_stop_order(
+                        symbol=position["symbol"],
+                        quantity=abs_quantity,
+                        side=position["side"],
+                        trail_percent=trail_percent,
+                    )
+                    if result:  # Check if the order was placed successfully
+                        trailing_stop_count += 1
+                except Exception as e:
+                    print(f"Skipping {position['symbol']} due to an error: {e}")
+                    continue  # Proceed to the next position
+
+        print(f"Placed {trailing_stop_count} trailing stop loss orders.")
+        return trailing_stop_count
+    except Exception as e:
+        print(f"Error while placing trailing stop loss orders: {e}")
+
+
 def get_orders_to_cancel():
     """
     Identify orders that should be canceled.
