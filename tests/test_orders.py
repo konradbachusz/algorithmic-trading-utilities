@@ -313,10 +313,18 @@ class TestGetCurrentTrailingStopOrders:
     def test_get_current_trailing_stop_orders_success(self, mocker):
         # Arrange
         mock_all_orders = [
-            mocker.Mock(id="order1", symbol="AAPL", side="sell", order_type="trailing_stop"),
-            mocker.Mock(id="order2", symbol="GOOGL", side="sell", order_type="trailing_stop"),
-            mocker.Mock(id="order3", symbol="TSLA", side="buy", order_type="trailing_stop"),  # Short position
-            mocker.Mock(id="order4", symbol="MSFT", side="buy", order_type="limit"),  # Not a trailing stop
+            mocker.Mock(
+                id="order1", symbol="AAPL", side="sell", order_type="trailing_stop"
+            ),
+            mocker.Mock(
+                id="order2", symbol="GOOGL", side="sell", order_type="trailing_stop"
+            ),
+            mocker.Mock(
+                id="order3", symbol="TSLA", side="buy", order_type="trailing_stop"
+            ),  # Short position
+            mocker.Mock(
+                id="order4", symbol="MSFT", side="buy", order_type="limit"
+            ),  # Not a trailing stop
         ]
         mock_get_orders = mocker.patch(
             "brokers.alpaca.orders.trading_client.get_orders",
@@ -329,7 +337,9 @@ class TestGetCurrentTrailingStopOrders:
         # Assert
         # Should return only trailing stop orders (3 out of 4)
         assert len(trailing_stop_orders) == 3
-        assert all(order.order_type == "trailing_stop" for order in trailing_stop_orders)
+        assert all(
+            order.order_type == "trailing_stop" for order in trailing_stop_orders
+        )
         mock_get_orders.assert_called_once_with(
             filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
         )

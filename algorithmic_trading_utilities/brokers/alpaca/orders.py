@@ -129,7 +129,7 @@ def get_current_trailing_stop_orders():
     all_open_orders = trading_client.get_orders(
         filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
     )
-    
+
     # Filter for trailing stop orders only
     trailing_stop_orders = [
         order for order in all_open_orders if order.order_type == "trailing_stop"
