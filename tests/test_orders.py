@@ -309,25 +309,39 @@ class TestCancelOrders:
 
 class TestGetCurrentTrailingStopOrders:
 
-    # Successfully retrieve active trailing stop orders
+    # Successfully retrieve active trailing stop orders including both long and short positions
     def test_get_current_trailing_stop_orders_success(self, mocker):
         # Arrange
-        mock_trailing_stop_orders = [
-            mocker.Mock(id="order1", symbol="AAPL", side="sell"),
-            mocker.Mock(id="order2", symbol="GOOGL", side="sell"),
+        mock_all_orders = [
+            mocker.Mock(
+                id="order1", symbol="AAPL", side="sell", order_type="trailing_stop"
+            ),
+            mocker.Mock(
+                id="order2", symbol="GOOGL", side="sell", order_type="trailing_stop"
+            ),
+            mocker.Mock(
+                id="order3", symbol="TSLA", side="buy", order_type="trailing_stop"
+            ),  # Short position
+            mocker.Mock(
+                id="order4", symbol="MSFT", side="buy", order_type="limit"
+            ),  # Not a trailing stop
         ]
         mock_get_orders = mocker.patch(
             "brokers.alpaca.orders.trading_client.get_orders",
-            return_value=mock_trailing_stop_orders,
+            return_value=mock_all_orders,
         )
 
         # Act
         trailing_stop_orders = get_current_trailing_stop_orders()
 
         # Assert
-        assert trailing_stop_orders == mock_trailing_stop_orders
+        # Should return only trailing stop orders (3 out of 4)
+        assert len(trailing_stop_orders) == 3
+        assert all(
+            order.order_type == "trailing_stop" for order in trailing_stop_orders
+        )
         mock_get_orders.assert_called_once_with(
-            filter=GetOrdersRequest(side=OrderSide.SELL, status=QueryOrderStatus.OPEN)
+            filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
         )
 
     # Handle APIError gracefully
@@ -342,7 +356,7 @@ class TestGetCurrentTrailingStopOrders:
         with pytest.raises(APIError, match="API error occurred"):
             get_current_trailing_stop_orders()
         mock_get_orders.assert_called_once_with(
-            filter=GetOrdersRequest(side=OrderSide.SELL, status=QueryOrderStatus.OPEN)
+            filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
         )
 
 
@@ -406,6 +420,36 @@ class TestPlaceTrailingStopOrder:
             trail_percent=trail_percent,
         )
         assert result is None
+
+    # Successfully place a trailing stop order for short position
+    def test_place_trailing_stop_order_short_position_success(self, mocker):
+        # Arrange
+        symbol = "AAPL"
+        quantity = 10
+        side = "sell"  # Short position
+        trail_percent = "5"
+
+        mock_response = mocker.Mock()
+        mock_submit_order = mocker.patch(
+            "brokers.alpaca.orders.tradeapi.REST.submit_order",
+            return_value=mock_response,
+        )
+
+        # Act
+        result = place_trailing_stop_order(
+            symbol=symbol, quantity=quantity, side=side, trail_percent=trail_percent
+        )
+
+        # Assert
+        mock_submit_order.assert_called_once_with(
+            symbol=symbol,
+            qty=quantity,
+            side="buy",  # Buy trailing stop for short position
+            type="trailing_stop",
+            time_in_force="gtc",
+            trail_percent=trail_percent,
+        )
+        assert result == mock_response
 
 
 class TestGetOrdersToCancel:
