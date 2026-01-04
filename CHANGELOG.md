@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-01-04
+- Added place_trailing_stop_losses_funct
+
 ## [0.1.1] - 2025-11-09
 
 ### Updates
