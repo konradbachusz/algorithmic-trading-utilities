@@ -1,6 +1,5 @@
 """Alpaca account activities helpers."""
 
-
 # Keep import style consistent with the rest of this package.
 try:
     from brokers.alpaca.alpaca_ops import api

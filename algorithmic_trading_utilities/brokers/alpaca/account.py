@@ -1,6 +1,5 @@
 """Alpaca account/balance helpers."""
 
-
 # Keep import style consistent with the rest of this package.
 try:
     from common.config import trading_client

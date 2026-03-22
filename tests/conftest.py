@@ -7,7 +7,9 @@ import pytest
 @pytest.fixture
 def sample_data():
     try:
-        from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+        from algorithmic_trading_utilities.common.portfolio_ops import (
+            PerformanceMetrics,
+        )
     except Exception as exc:
         pytest.skip(f"PerformanceMetrics unavailable: {exc}")
 
