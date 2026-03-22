@@ -175,3 +175,5 @@ cython_debug/
 
 # json settings
 *.json
+
+test.py

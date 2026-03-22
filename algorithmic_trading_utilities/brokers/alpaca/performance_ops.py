@@ -48,6 +48,28 @@ def _to_serializable(value: Any, _seen: Optional[set] = None) -> Any:
 	if value is None:
 		return None
 
+	# Common scalar-ish types
+	try:
+		from uuid import UUID
+		from enum import Enum
+		from datetime import date
+	except Exception:  # pragma: no cover
+		UUID = None  # type: ignore[assignment]
+		Enum = None  # type: ignore[assignment]
+		date = None  # type: ignore[assignment]
+
+	if UUID is not None and isinstance(value, UUID):
+		return str(value)
+	if Enum is not None and isinstance(value, Enum):
+		# Prefer the underlying value (often a string) when possible.
+		return _to_serializable(value.value, _seen=_seen)
+	if hasattr(value, "isoformat") and callable(value.isoformat):
+		# datetime/date-like
+		try:
+			return value.isoformat()
+		except Exception:
+			pass
+
 	# Avoid infinite recursion on self-referential objects.
 	value_id = id(value)
 	if value_id in _seen:
@@ -63,6 +85,24 @@ def _to_serializable(value: Any, _seen: Optional[set] = None) -> Any:
 		pass
 
 	_seen.add(value_id)
+
+	# alpaca-trade-api entities typically store their real data in `_raw`.
+	# If we don't use it, serializing via __dict__ yields empty dicts.
+	if hasattr(value, "_raw"):
+		try:
+			raw = getattr(value, "_raw")
+			if isinstance(raw, (dict, list)):
+				return _to_serializable(raw, _seen=_seen)
+		except Exception:
+			pass
+	if hasattr(value, "raw"):
+		try:
+			raw = getattr(value, "raw")
+			if isinstance(raw, (dict, list)):
+				return _to_serializable(raw, _seen=_seen)
+		except Exception:
+			pass
+
 	if isinstance(value, (str, int, float, bool)):
 		return value
 	if isinstance(value, dict):

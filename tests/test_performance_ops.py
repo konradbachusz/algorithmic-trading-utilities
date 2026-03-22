@@ -9,19 +9,23 @@ from brokers.alpaca.performance_ops import save_strategy_snapshot
 class TestSaveStrategySnapshot:
 
     def test_writes_snapshot_json(self, mocker, tmp_path):
+        class RawEntity:
+            def __init__(self, raw):
+                self._raw = raw
+
         # Arrange
         mocker.patch(
             "brokers.alpaca.performance_ops.trading_client.get_all_positions",
-            return_value=[mocker.Mock(symbol="AAPL")],
+            return_value=[{"symbol": "AAPL", "qty": "1"}],
         )
 
         mocker.patch(
             "brokers.alpaca.performance_ops.api.list_orders",
-            return_value=[mocker.Mock(id="order1")],
+            return_value=[RawEntity({"id": "order1", "status": "new"})],
         )
         mocker.patch(
             "brokers.alpaca.performance_ops.get_activities",
-            return_value=[{"activity_type": "FILL"}],
+            return_value=[RawEntity({"activity_type": "FILL", "symbol": "AAPL"})],
         )
         mocker.patch(
             "brokers.alpaca.performance_ops.get_balances",
@@ -53,6 +57,10 @@ class TestSaveStrategySnapshot:
         assert "orders" in payload
         assert "activities" in payload
         assert "balances" in payload
+
+        # Ensure orders/activities aren't empty dicts after serialization.
+        assert payload["orders"][0]["id"] == "order1"
+        assert payload["activities"][0]["activity_type"] == "FILL"
 
         mock_get_ph.assert_called_once_with(
             timeframe="1D", date_start="2025-01-01", date_end="2025-01-31"
