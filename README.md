@@ -15,6 +15,7 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 - **Yahoo Finance Integration**: Access to market screeners and S&P 500 benchmark data
 - **Visualization Tools**: Time series plotting and portfolio comparison charts
 - **Broker Integration**: Seamless integration with Alpaca trading platform
+- **Strategy Snapshots**: Export broker state (positions, orders, activities, balances, equity curve) to JSON
 
 ## Installation
 
@@ -197,6 +198,36 @@ print(f"Found {len(gainers_df)} large-cap gainers today")
 print(gainers_df[['symbol', 'shortName', 'regularMarketChangePercent']].head())
 ```
 
+### Account, Activities, and Balances
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.account import get_balances
+from algorithmic_trading_utilities.brokers.alpaca.activities import get_activities
+
+balances = get_balances()
+print(balances["cash"], balances["buying_power"], balances["equity"])
+
+activities = get_activities(activity_types=["FILL", "DIV"], page_size=50)
+print(f"Got {len(activities)} activities")
+```
+
+### Strategy Snapshot Export
+
+```python
+from pathlib import Path
+from algorithmic_trading_utilities.brokers.alpaca.performance_ops import save_strategy_snapshot
+
+snapshot_path = save_strategy_snapshot(
+    strategy_name="mean_reversion_v1",
+    output_dir=Path("snapshots"),
+    timeframe="1D",
+    date_start="2025-01-01",
+    date_end="2025-01-31",
+)
+
+print(f"Saved snapshot to: {snapshot_path}")
+```
+
 ### Quantitative Analysis
 
 ```python
@@ -354,7 +385,10 @@ algorithmic_trading_utilities/
 ├── brokers/
 │   └── alpaca/
 │       ├── alpaca_ops.py    # Portfolio history operations
+│       ├── account.py       # Account and balances
+│       ├── activities.py    # Account activities
 │       ├── orders.py        # Order management
+│       ├── performance_ops.py # Strategy snapshot export
 │       └── positions.py     # Position management
 ├── common/
 │   ├── portfolio_ops.py     # Portfolio analytics
@@ -418,6 +452,12 @@ algorithmic_trading_utilities/
 
 - `cancel_orders()` - Cancel all orders with retry logic
 - `cancel_order_by_symbol(symbol)` - Cancel orders for specific symbol
+
+### Account and Strategy State (`brokers.alpaca.account`, `brokers.alpaca.activities`, `brokers.alpaca.performance_ops`)
+
+- `get_balances()` - Retrieve common account balance fields
+- `get_activities(...)` - Retrieve account activities
+- `save_strategy_snapshot(strategy_name, ...)` - Export positions/orders/activities/balances/equity performance to JSON
 
 ### Position Management (`brokers.alpaca.positions`)
 
@@ -584,6 +624,9 @@ pytest tests/ -v -s
 - `test_quantitative_tools.py` - Quantitative analysis utilities
 - `test_viz_ops.py` - Visualization functions
 - `test_email_ops.py` - Email notification system
+- `test_account.py` - Alpaca account and balances
+- `test_activities.py` - Alpaca account activities
+- `test_performance_ops.py` - Strategy snapshot export
 
 ## Error Handling
 

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Alpaca account helpers: `get_account()` and `get_balances()`.
+- Added Alpaca activities helper: `get_activities()`.
+- Added strategy snapshot export: `save_strategy_snapshot()` to persist positions, orders, activities, balances, and equity performance to JSON.
+
+### Changed
+- Improved snapshot serialization to be safe on recursive objects.
+- Updated test setup to avoid hard-failing when SciPy cannot be imported in the active environment.
+
+### Removed
+- Removed outdated tests for the removed Alpaca assets wrapper.
+
 ## [0.1.2] - 2026-01-04
 - Added place_trailing_stop_losses_funct
 
