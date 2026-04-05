@@ -4,9 +4,12 @@ from setuptools import setup, find_packages
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
+with open("VERSION") as f:
+    version = f.read().strip()
+
 setup(
     name="algorithmic_trading_utilities",
-    version="0.1.2",
+    version=version,
     packages=find_packages(),
     install_requires=requirements,  # <- automatically installs all dependencies
     description="Reusable utilities for algorithmic trading pipelines.",
