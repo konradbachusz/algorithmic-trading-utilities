@@ -341,6 +341,32 @@ def get_orders_symbol_list(orders):
     return order_symbols
 
 
+def cancel_entry_orders():
+    """Cancel unfilled entry orders (market/limit) while preserving stop orders.
+
+    Iterates over all open orders and cancels only those with order type
+    MARKET or LIMIT, leaving trailing-stop and stop orders intact.
+
+    Returns:
+        The number of orders successfully cancelled.
+    """
+    orders = get_orders()
+    entry_types = {OrderType.MARKET, OrderType.LIMIT}
+    cancelled = 0
+    for order in orders or []:
+        if order.order_type in entry_types:
+            try:
+                trading_client.cancel_order_by_id(order.id)
+                print(
+                    f"Cancelled {order.order_type} order for {order.symbol} (ID: {order.id})"
+                )
+                cancelled += 1
+            except Exception as e:
+                print(f"Failed to cancel order for {order.symbol}: {e}")
+    print(f"Cancelled {cancelled} entry orders (stops preserved)")
+    return cancelled
+
+
 def cancel_order_by_symbol(symbol):
     """
     Cancel the first open SELL order for a given symbol.
