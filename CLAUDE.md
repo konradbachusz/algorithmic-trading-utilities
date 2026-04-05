@@ -50,7 +50,7 @@ Follow this pattern when adding new cross-module imports.
 
 **`PerformanceMetrics`** (`common/portfolio_ops.py`) is the central analytics class. It takes portfolio and optional benchmark equity series and provides all risk/return metrics. Tests use a `sample_data` fixture from `conftest.py` that generates deterministic random data (seed 42).
 
-**`performance_ops.py`** exports strategy snapshots as JSON and Markdown reports to `strategy_snapshots/`. It serializes Alpaca SDK objects by converting `RawData` dicts and enum values to plain types.
+**`performance_ops.py`** (`brokers/alpaca/performance_ops.py`) exports strategy snapshots as JSON and generates Markdown/JSON reports to `strategy_snapshots/`. Key entry points: `save_strategy_snapshot()` for capturing broker state, `generate_strategy_report()` for rendering reports from snapshots. It serializes Alpaca SDK objects by converting `RawData` dicts, enums, and recursive structures to plain types via `_to_serializable()`.
 
 ## Generating Strategy Snapshots
 
@@ -64,4 +64,4 @@ python test.py my_strat --include-benchmark              # include benchmark-rel
 
 ## CI
 
-GitHub Actions runs `pytest tests -v -s` on Python 3.10 against `main` for pushes and PRs. API keys are injected via repository secrets.
+GitHub Actions runs `pytest tests -v -s` on Python 3.10 against `main` for pushes and PRs. API keys are injected via repository secrets. A separate `tag-release.yml` workflow automatically creates a git tag from `VERSION` on every push to `main` (skips if the tag already exists).

@@ -228,6 +228,26 @@ snapshot_path = save_strategy_snapshot(
 print(f"Saved snapshot to: {snapshot_path}")
 ```
 
+### Strategy Report Generation
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.performance_ops import (
+    generate_strategy_report,
+    load_strategy_snapshot,
+    generate_strategy_report_data,
+)
+
+# Generate a Markdown report from a saved snapshot
+report_path = generate_strategy_report(snapshot_path, format="md")
+print(f"Report saved to: {report_path}")
+
+# Or get structured report data for programmatic use
+snapshot = load_strategy_snapshot(snapshot_path)
+report_data = generate_strategy_report_data(snapshot, include_benchmark=True)
+print(f"Strategy: {report_data['strategy']}")
+print(f"Open positions: {report_data['executive_summary']['open_positions_count']}")
+```
+
 ### Quantitative Analysis
 
 ```python
@@ -458,6 +478,10 @@ algorithmic_trading_utilities/
 - `get_balances()` - Retrieve common account balance fields
 - `get_activities(...)` - Retrieve account activities
 - `save_strategy_snapshot(strategy_name, ...)` - Export positions/orders/activities/balances/equity performance to JSON
+- `generate_strategy_report(snapshot_path, ...)` - Generate Markdown or JSON report from a snapshot
+- `generate_strategy_report_data(snapshot, ...)` - Compute structured report aggregates from a snapshot
+- `normalize_snapshot(snapshot)` - Normalize raw snapshot data with data-quality warnings
+- `load_strategy_snapshot(path)` - Load a saved snapshot JSON file
 
 ### Position Management (`brokers.alpaca.positions`)
 
@@ -627,6 +651,7 @@ pytest tests/ -v -s
 - `test_account.py` - Alpaca account and balances
 - `test_activities.py` - Alpaca account activities
 - `test_performance_ops.py` - Strategy snapshot export
+- `test_reporting.py` - Strategy report generation and rendering
 
 ## Error Handling
 
