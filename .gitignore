@@ -175,3 +175,8 @@ cython_debug/
 
 # json settings
 *.json
+
+test.py
+
+# Strategy snapshots
+strategy_snapshots/

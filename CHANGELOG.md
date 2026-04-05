@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-05
+
+### Added
+- Alpaca account helpers: `get_account()` and `get_balances()` (`brokers.alpaca.account`).
+- Alpaca activities helper: `get_activities()` (`brokers.alpaca.activities`).
+- Strategy snapshot export: `save_strategy_snapshot()` persists positions, orders, activities, balances, and equity performance to JSON (`brokers.alpaca.performance_ops`).
+- Strategy report generation: `generate_strategy_report()` and `generate_strategy_report_data()` produce Markdown or JSON reports from snapshot files.
+- Snapshot normalization: `normalize_snapshot()` cleans raw snapshot data with data-quality warnings.
+- `CLAUDE.md` project guidance file for Claude Code.
+- `VERSION` file for tracking releases.
+- Tests for account, activities, snapshot export, and report generation (`test_account.py`, `test_activities.py`, `test_performance_ops.py`, `test_reporting.py`).
+- GitHub Actions workflow `tag-release.yml` that automatically creates a git tag from `VERSION` when a branch is merged into `main`.
+
+### Changed
+- Improved snapshot serialization to handle recursive and self-referential Alpaca SDK objects safely.
+- Test setup (`conftest.py`) now gracefully skips when SciPy/PerformanceMetrics cannot be imported.
+
 ## [0.1.2] - 2026-01-04
 - Added place_trailing_stop_losses_funct
 
