@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-05
+
+### Added
+- Entry order cancellation: `cancel_entry_orders()` cancels unfilled MARKET and LIMIT orders while preserving stop and trailing-stop orders (`brokers.alpaca.orders`).
+- Market hours utility: `is_market_hours()` checks whether the current time falls within NYSE regular session hours, including open/close buffers (`common.market_hours`).
+- Tests for `cancel_entry_orders` (order filtering, empty list, individual failure handling) and `is_market_hours` (session, boundaries, off-hours).
+
 ## [0.3.1] - 2026-04-05
 
 ### Changed

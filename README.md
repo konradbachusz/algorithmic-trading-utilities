@@ -20,6 +20,8 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 - **Portfolio Constraints**: Sector concentration and gross exposure checks before trade execution
 - **Adaptive Trailing Stops**: Per-stock trailing stop percentages derived from ATR
 - **Targeted Order Cancellation**: Cancel orders for specific symbols without removing protective stops on other positions
+- **Entry Order Cancellation**: Cancel unfilled market/limit orders while preserving all stop orders
+- **Market Hours Detection**: Check whether the current time is within NYSE regular trading session
 
 ## Installation
 
@@ -318,6 +320,28 @@ cancelled = cancel_orders_for_symbols(["AAPL", "NVDA"], trading_client)
 print(f"Cancelled {cancelled} orders")
 ```
 
+### Entry Order Cancellation
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.orders import cancel_entry_orders
+
+# Cancel all unfilled market/limit orders, preserving stop orders
+cancelled = cancel_entry_orders()
+print(f"Cancelled {cancelled} entry orders")
+```
+
+### Market Hours Check
+
+```python
+from algorithmic_trading_utilities.common.market_hours import is_market_hours
+
+# Check if NYSE is currently in regular session (09:25-16:05 ET)
+if is_market_hours():
+    print("Market is open")
+else:
+    print("Market is closed")
+```
+
 ### Quantitative Analysis
 
 ```python
@@ -486,6 +510,7 @@ algorithmic_trading_utilities/
 │   ├── portfolio_constraints.py # Sector/exposure risk checks
 │   ├── position_sizing.py   # ATR-based position sizing
 │   ├── trailing_stop_config.py # Adaptive trailing stops
+│   ├── market_hours.py       # NYSE market hours detection
 │   ├── quantitative_tools.py # Data analysis utilities
 │   ├── news_ops.py          # News scraping utilities
 │   ├── sentiment_ops.py     # Sentiment analysis with AI
@@ -546,6 +571,7 @@ algorithmic_trading_utilities/
 
 - `cancel_orders()` - Cancel all orders with retry logic
 - `cancel_order_by_symbol(symbol)` - Cancel orders for specific symbol
+- `cancel_entry_orders()` - Cancel unfilled market/limit orders, preserving stops
 - `cancel_orders_for_symbols(symbols, trading_client)` - Cancel orders only for specified symbols (`brokers.alpaca.cancel_orders_targeted`)
 
 ### Account and Strategy State (`brokers.alpaca.account`, `brokers.alpaca.activities`, `brokers.alpaca.performance_ops`)
@@ -568,6 +594,10 @@ algorithmic_trading_utilities/
 - `get_sector(symbol)` - GICS sector lookup via yfinance with caching
 - `check_sector_exposure(existing_positions, proposed_trade, equity, max_sector_pct=0.30)` - Sector concentration check
 - `check_gross_exposure(existing_positions, proposed_notional, equity, max_gross_pct=0.80)` - Gross exposure limit check
+
+### Market Hours (`common.market_hours`)
+
+- `is_market_hours()` - Returns `True` if current UTC time is within NYSE regular session (09:25–16:05 ET / 13:25–20:05 UTC)
 
 ### Trailing Stop Configuration (`common.trailing_stop_config`)
 
@@ -746,6 +776,7 @@ pytest tests/ -v -s
 - `test_portfolio_constraints.py` - Sector and gross exposure constraints
 - `test_position_sizing.py` - ATR-based position sizing
 - `test_trailing_stop_config.py` - Adaptive trailing stop calculation
+- `test_market_hours.py` - NYSE market hours detection
 
 ## Error Handling
 

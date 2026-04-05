@@ -34,7 +34,7 @@ Required in `.env` (see `.env.example`): `PAPER_KEY`, `PAPER_SECRET` (Alpaca pap
 This is a Python library for algorithmic trading, structured into three domains:
 
 - **`brokers/alpaca/`** - Alpaca API integration: account info, order placement (with retry/backoff), position management, portfolio history, strategy performance snapshots. All broker modules depend on `common/config.py` for the `TradingClient` instance.
-- **`common/`** - Shared utilities: `PerformanceMetrics` class (Sharpe, Sortino, alpha/beta, drawdown, VaR/CVaR), ATR-based position sizing (`position_sizing.py`), portfolio risk constraints (`portfolio_constraints.py`), adaptive trailing stops (`trailing_stop_config.py`), sentiment analysis (DistilRoBERTa via HuggingFace), email notifications, web scraping, visualization.
+- **`common/`** - Shared utilities: `PerformanceMetrics` class (Sharpe, Sortino, alpha/beta, drawdown, VaR/CVaR), ATR-based position sizing (`position_sizing.py`), portfolio risk constraints (`portfolio_constraints.py`), adaptive trailing stops (`trailing_stop_config.py`), market hours detection (`market_hours.py`), sentiment analysis (DistilRoBERTa via HuggingFace), email notifications, web scraping, visualization.
 - **`data/`** - Market data retrieval from Alpaca (`get_data.py`) and Yahoo Finance (`yfinance_ops.py`).
 
 ### Key patterns
