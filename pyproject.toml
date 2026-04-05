@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "algorithmic-trading-utilities"
-version = "0.1.2"
+dynamic = ["version"]
 description = "Algorithmic trading utilities for market data and analysis"
 authors = [{name = "Konrad Bachusz"}]
 readme = "README.md"
@@ -40,6 +40,9 @@ docs = [
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0"
 ]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
 
 [tool.setuptools.packages.find]
 where = [""]

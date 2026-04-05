@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-05
+
+### Changed
+- `pyproject.toml` now reads version dynamically from `VERSION` via `[tool.setuptools.dynamic]` instead of a hardcoded string.
+- `setup.py` now reads version from `VERSION` at build time, keeping both build configs in sync automatically.
+
 ## [0.3.0] - 2026-04-05
 
 ### Added
