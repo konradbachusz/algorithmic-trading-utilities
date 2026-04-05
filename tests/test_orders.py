@@ -14,6 +14,7 @@ import pytest
 from brokers.alpaca.orders import (
     get_orders,
     cancel_orders,
+    cancel_entry_orders,
     place_order,
     get_current_trailing_stop_orders,
     place_trailing_stop_order,
@@ -452,6 +453,64 @@ class TestPlaceTrailingStopOrder:
             trail_percent=trail_percent,
         )
         assert result == mock_response
+
+
+class TestCancelEntryOrders:
+
+    def test_only_cancels_market_and_limit(self, mocker):
+        """Verify only MARKET and LIMIT orders are cancelled, not stops."""
+        from alpaca.trading.enums import OrderType
+
+        mock_orders = [
+            mocker.Mock(order_type=OrderType.MARKET, symbol="AAPL", id="id-1"),
+            mocker.Mock(order_type=OrderType.TRAILING_STOP, symbol="MSFT", id="id-2"),
+            mocker.Mock(order_type=OrderType.LIMIT, symbol="GOOG", id="id-3"),
+            mocker.Mock(order_type=OrderType.STOP, symbol="TSLA", id="id-4"),
+        ]
+        mocker.patch("brokers.alpaca.orders.get_orders", return_value=mock_orders)
+        mock_cancel = mocker.patch(
+            "brokers.alpaca.orders.trading_client.cancel_order_by_id"
+        )
+
+        result = cancel_entry_orders()
+
+        assert result == 2
+        assert mock_cancel.call_count == 2
+        cancelled_ids = {c.args[0] for c in mock_cancel.call_args_list}
+        assert "id-1" in cancelled_ids
+        assert "id-3" in cancelled_ids
+        assert "id-2" not in cancelled_ids
+
+    def test_no_orders_returns_zero(self, mocker):
+        """Verify empty order list returns 0."""
+        mocker.patch("brokers.alpaca.orders.get_orders", return_value=[])
+        mock_cancel = mocker.patch(
+            "brokers.alpaca.orders.trading_client.cancel_order_by_id"
+        )
+
+        result = cancel_entry_orders()
+
+        assert result == 0
+        mock_cancel.assert_not_called()
+
+    def test_continues_on_individual_failure(self, mocker):
+        """Verify processing continues when one cancel fails."""
+        from alpaca.trading.enums import OrderType
+
+        mock_orders = [
+            mocker.Mock(order_type=OrderType.MARKET, symbol="AAPL", id="id-1"),
+            mocker.Mock(order_type=OrderType.LIMIT, symbol="GOOG", id="id-2"),
+        ]
+        mocker.patch("brokers.alpaca.orders.get_orders", return_value=mock_orders)
+        mock_cancel = mocker.patch(
+            "brokers.alpaca.orders.trading_client.cancel_order_by_id",
+            side_effect=[Exception("API error"), None],
+        )
+
+        result = cancel_entry_orders()
+
+        assert mock_cancel.call_count == 2
+        assert result == 1  # Only second one succeeded
 
 
 class TestGetOrdersToCancel:
