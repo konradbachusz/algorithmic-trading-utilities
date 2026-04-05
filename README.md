@@ -16,6 +16,10 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 - **Visualization Tools**: Time series plotting and portfolio comparison charts
 - **Broker Integration**: Seamless integration with Alpaca trading platform
 - **Strategy Snapshots**: Export broker state (positions, orders, activities, balances, equity curve) to JSON
+- **Position Sizing**: ATR-based volatility-adjusted position sizing with configurable risk limits
+- **Portfolio Constraints**: Sector concentration and gross exposure checks before trade execution
+- **Adaptive Trailing Stops**: Per-stock trailing stop percentages derived from ATR
+- **Targeted Order Cancellation**: Cancel orders for specific symbols without removing protective stops on other positions
 
 ## Installation
 
@@ -248,6 +252,72 @@ print(f"Strategy: {report_data['strategy']}")
 print(f"Open positions: {report_data['executive_summary']['open_positions_count']}")
 ```
 
+### Position Sizing
+
+```python
+from algorithmic_trading_utilities.common.position_sizing import calculate_position_size
+from alpaca.data.historical.stock import StockHistoricalDataClient
+
+data_client = StockHistoricalDataClient("your_key", "your_secret")
+
+# Size a position so that a 2x ATR move risks 1% of equity
+result = calculate_position_size(
+    symbol="AAPL",
+    last_price=190.0,
+    equity=30000.0,
+    risk_per_trade=0.01,
+    client=data_client,
+)
+print(f"Shares: {result['quantity']}, Stop distance: ${result['stop_distance']}")
+print(f"ATR: {result['atr']}, Notional: ${result['notional']}")
+```
+
+### Portfolio Constraints
+
+```python
+from algorithmic_trading_utilities.common.portfolio_constraints import (
+    check_sector_exposure,
+    check_gross_exposure,
+)
+
+positions = [
+    {"symbol": "XOM", "market_value": "3000"},
+    {"symbol": "CVX", "market_value": "2500"},
+]
+
+# Check if adding another Energy stock would breach 30% sector limit
+allowed, reason = check_sector_exposure(
+    positions, {"symbol": "COP", "notional": 2000}, equity=30000
+)
+print(f"Allowed: {allowed}, Reason: {reason}")
+
+# Check gross exposure limit (default 80%)
+allowed, reason = check_gross_exposure(positions, 3000, equity=30000)
+print(f"Allowed: {allowed}, Reason: {reason}")
+```
+
+### Adaptive Trailing Stops
+
+```python
+from algorithmic_trading_utilities.common.trailing_stop_config import calculate_trailing_stop_pct
+from algorithmic_trading_utilities.common.position_sizing import get_atr
+
+atr = get_atr("AAPL", data_client)
+stop_pct = calculate_trailing_stop_pct(atr=atr, last_price=190.0)
+print(f"Trailing stop: {stop_pct:.1%}")  # e.g., 6.6% instead of flat 10%
+```
+
+### Targeted Order Cancellation
+
+```python
+from algorithmic_trading_utilities.brokers.alpaca.cancel_orders_targeted import cancel_orders_for_symbols
+from algorithmic_trading_utilities.common.config import trading_client
+
+# Cancel orders only for symbols about to receive new trades
+cancelled = cancel_orders_for_symbols(["AAPL", "NVDA"], trading_client)
+print(f"Cancelled {cancelled} orders")
+```
+
 ### Quantitative Analysis
 
 ```python
@@ -408,10 +478,14 @@ algorithmic_trading_utilities/
 │       ├── account.py       # Account and balances
 │       ├── activities.py    # Account activities
 │       ├── orders.py        # Order management
+│       ├── cancel_orders_targeted.py # Targeted order cancellation
 │       ├── performance_ops.py # Strategy snapshot export
 │       └── positions.py     # Position management
 ├── common/
 │   ├── portfolio_ops.py     # Portfolio analytics
+│   ├── portfolio_constraints.py # Sector/exposure risk checks
+│   ├── position_sizing.py   # ATR-based position sizing
+│   ├── trailing_stop_config.py # Adaptive trailing stops
 │   ├── quantitative_tools.py # Data analysis utilities
 │   ├── news_ops.py          # News scraping utilities
 │   ├── sentiment_ops.py     # Sentiment analysis with AI
@@ -472,6 +546,7 @@ algorithmic_trading_utilities/
 
 - `cancel_orders()` - Cancel all orders with retry logic
 - `cancel_order_by_symbol(symbol)` - Cancel orders for specific symbol
+- `cancel_orders_for_symbols(symbols, trading_client)` - Cancel orders only for specified symbols (`brokers.alpaca.cancel_orders_targeted`)
 
 ### Account and Strategy State (`brokers.alpaca.account`, `brokers.alpaca.activities`, `brokers.alpaca.performance_ops`)
 
@@ -482,6 +557,21 @@ algorithmic_trading_utilities/
 - `generate_strategy_report_data(snapshot, ...)` - Compute structured report aggregates from a snapshot
 - `normalize_snapshot(snapshot)` - Normalize raw snapshot data with data-quality warnings
 - `load_strategy_snapshot(path)` - Load a saved snapshot JSON file
+
+### Position Sizing (`common.position_sizing`)
+
+- `get_atr(symbol, client, period=14)` - Calculate Average True Range
+- `calculate_position_size(symbol, last_price, equity, risk_per_trade, client, ...)` - ATR-adjusted position sizing with max notional cap
+
+### Portfolio Constraints (`common.portfolio_constraints`)
+
+- `get_sector(symbol)` - GICS sector lookup via yfinance with caching
+- `check_sector_exposure(existing_positions, proposed_trade, equity, max_sector_pct=0.30)` - Sector concentration check
+- `check_gross_exposure(existing_positions, proposed_notional, equity, max_gross_pct=0.80)` - Gross exposure limit check
+
+### Trailing Stop Configuration (`common.trailing_stop_config`)
+
+- `calculate_trailing_stop_pct(atr, last_price, min_pct=0.05, max_pct=0.20, atr_multiplier=2.5)` - ATR-derived trailing stop percentage, clamped between bounds
 
 ### Position Management (`brokers.alpaca.positions`)
 
@@ -652,6 +742,10 @@ pytest tests/ -v -s
 - `test_activities.py` - Alpaca account activities
 - `test_performance_ops.py` - Strategy snapshot export
 - `test_reporting.py` - Strategy report generation and rendering
+- `test_cancel_orders_targeted.py` - Targeted order cancellation
+- `test_portfolio_constraints.py` - Sector and gross exposure constraints
+- `test_position_sizing.py` - ATR-based position sizing
+- `test_trailing_stop_config.py` - Adaptive trailing stop calculation
 
 ## Error Handling
 

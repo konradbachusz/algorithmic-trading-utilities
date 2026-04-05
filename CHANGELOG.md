@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-05
+
+### Added
+- Targeted order cancellation: `cancel_orders_for_symbols()` cancels orders only for specified symbols, preserving protective stops on other positions (`brokers.alpaca.cancel_orders_targeted`).
+- Portfolio risk constraints: `check_sector_exposure()` and `check_gross_exposure()` enforce sector concentration and gross exposure limits before trade execution (`common.portfolio_constraints`).
+- ATR-based position sizing: `get_atr()` and `calculate_position_size()` size positions so each risks the same dollar amount based on volatility (`common.position_sizing`).
+- Adaptive trailing stops: `calculate_trailing_stop_pct()` derives per-stock trailing stop percentages from ATR instead of using a flat value (`common.trailing_stop_config`).
+- Tests for all new modules (`test_cancel_orders_targeted.py`, `test_portfolio_constraints.py`, `test_position_sizing.py`, `test_trailing_stop_config.py`).
+
 ## [0.2.0] - 2026-04-05
 
 ### Added
