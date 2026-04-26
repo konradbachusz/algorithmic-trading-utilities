@@ -4,8 +4,76 @@ import sys
 import pandas as pd
 
 sys.path.insert(1, "algorithmic_trading_utilities")
-from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
+from algorithmic_trading_utilities.common.portfolio_ops import (
+    PerformanceMetrics,
+    fetch_normalized_benchmark,
+)
 import numpy as np
+
+
+class TestFetchNormalizedBenchmark:
+    def test_normalises_to_portfolio_start_value(self, mocker):
+        """Benchmark first value should equal portfolio first value after rescale."""
+        portfolio = pd.Series(
+            [10000.0, 10500.0, 10300.0, 10800.0],
+            index=pd.to_datetime(
+                ["2025-01-01", "2025-01-02", "2025-01-03", "2025-01-06"]
+            ),
+        )
+        sp500 = pd.Series(
+            [5000.0, 5050.0, 5025.0, 5100.0],
+            index=pd.to_datetime(
+                ["2025-01-01", "2025-01-02", "2025-01-03", "2025-01-06"]
+            ),
+        )
+        mocker.patch(
+            "algorithmic_trading_utilities.common.portfolio_ops.get_sp500_prices",
+            return_value=sp500,
+        )
+
+        p_aligned, b_aligned = fetch_normalized_benchmark(portfolio, "2025-01-01")
+
+        assert b_aligned.iloc[0] == pytest.approx(p_aligned.iloc[0])
+        # Benchmark mid-point should reflect S&P's relative move (5050/5000 * 10000)
+        assert b_aligned.iloc[1] == pytest.approx(10100.0)
+
+    def test_intersects_to_common_dates_only(self, mocker):
+        """Dates present in only one of the two series are dropped from both."""
+        portfolio = pd.Series(
+            [100.0, 101.0, 102.0],
+            index=pd.to_datetime(["2025-01-01", "2025-01-02", "2025-01-03"]),
+        )
+        # Benchmark missing 2025-01-02, has extra 2025-01-04
+        sp500 = pd.Series(
+            [50.0, 51.0, 52.0],
+            index=pd.to_datetime(["2025-01-01", "2025-01-03", "2025-01-04"]),
+        )
+        mocker.patch(
+            "algorithmic_trading_utilities.common.portfolio_ops.get_sp500_prices",
+            return_value=sp500,
+        )
+
+        p_aligned, b_aligned = fetch_normalized_benchmark(portfolio, "2025-01-01")
+
+        assert list(p_aligned.index) == list(
+            pd.to_datetime(["2025-01-01", "2025-01-03"])
+        )
+        assert list(b_aligned.index) == list(p_aligned.index)
+
+    def test_passes_date_start_to_get_sp500_prices(self, mocker):
+        """The date_start argument is forwarded as-is to ``get_sp500_prices``."""
+        portfolio = pd.Series(
+            [100.0],
+            index=pd.to_datetime(["2025-04-08"]),
+        )
+        mock = mocker.patch(
+            "algorithmic_trading_utilities.common.portfolio_ops.get_sp500_prices",
+            return_value=pd.Series([50.0], index=pd.to_datetime(["2025-04-08"])),
+        )
+
+        fetch_normalized_benchmark(portfolio, "2025-04-08")
+
+        mock.assert_called_once_with("2025-04-08")
 
 
 class TestPerformanceMetrics:

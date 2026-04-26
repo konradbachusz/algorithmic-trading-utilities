@@ -553,3 +553,100 @@ class PerformanceViz:
         except ValueError:
             pass
         return figs
+
+
+_ALL_PERFORMANCE_PLOT_NAMES = (
+    "cumulative_returns",
+    "equity_curve",
+    "equity_with_drawdowns",
+    "drawdown_series",
+    "rolling_volatility",
+    "returns_distribution",
+    "rolling_sharpe",
+    "rolling_alpha_beta",
+)
+
+
+def build_performance_figures(
+    viz: "PerformanceViz",
+    show: bool = False,
+    mask_benchmark_on=("cumulative_returns", "equity_curve"),
+):
+    """Build all performance plots, hiding the benchmark on selected ones.
+
+    The benchmark series is the raw S&P 500 index price, which has no
+    meaningful dollar comparison to portfolio equity. By default the benchmark
+    line is hidden on the dollar-scale plots (cumulative returns, equity
+    curve) and kept on the rest. This is useful for any strategy: the unit
+    mismatch is not strategy-specific.
+
+    The masking is implemented by temporarily setting ``viz.benchmark`` to
+    ``None`` around the call and restoring it afterwards (the plot methods
+    short-circuit on ``self.benchmark is None``).
+
+    Args:
+        viz: ``PerformanceViz`` instance to render from.
+        show: Whether to display plots interactively.
+        mask_benchmark_on: Iterable of plot names whose benchmark line should
+            be hidden. Valid names are listed in
+            :data:`_ALL_PERFORMANCE_PLOT_NAMES`.
+
+    Returns:
+        list: matplotlib Figure objects, one per plot (alpha/beta produces two).
+    """
+
+    saved_benchmark = viz.benchmark
+    mask_set = set(mask_benchmark_on)
+
+    def _maybe_mask(name, fn):
+        if name in mask_set:
+            viz.benchmark = None
+        try:
+            return fn()
+        finally:
+            viz.benchmark = saved_benchmark
+
+    figs = []
+    figs.append(
+        _maybe_mask(
+            "cumulative_returns",
+            lambda: viz.plot_cumulative_returns_timeseries(show=show),
+        )
+    )
+    figs.append(
+        _maybe_mask("equity_curve", lambda: viz.plot_equity_curve(show=show))
+    )
+    figs.append(
+        _maybe_mask(
+            "equity_with_drawdowns",
+            lambda: viz.plot_equity_with_drawdowns(show=show),
+        )
+    )
+    figs.append(
+        _maybe_mask(
+            "drawdown_series", lambda: viz.plot_drawdown_series(show=show)
+        )
+    )
+    figs.append(
+        _maybe_mask(
+            "rolling_volatility", lambda: viz.plot_rolling_volatility(show=show)
+        )
+    )
+    figs.append(
+        _maybe_mask(
+            "returns_distribution",
+            lambda: viz.plot_returns_distribution(show=show),
+        )
+    )
+    figs.append(
+        _maybe_mask("rolling_sharpe", lambda: viz.plot_rolling_sharpe(show=show))
+    )
+
+    if "rolling_alpha_beta" not in mask_set:
+        try:
+            a, b = viz.plot_rolling_alpha_beta(show=show)
+            figs.extend([a, b])
+        except ValueError:
+            pass
+
+    return figs

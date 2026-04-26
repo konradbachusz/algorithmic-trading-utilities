@@ -21,6 +21,39 @@ except ImportError:
     )
 
 
+def fetch_normalized_benchmark(portfolio_equity: pd.Series, date_start: str):
+    """Fetch S&P 500, intersect dates with portfolio, and normalise to portfolio start.
+
+    The S&P 500 index price is in different units to portfolio equity (index
+    points vs dollars). To make the two series visually comparable, we restrict
+    both to common dates and rescale the benchmark so its first value equals
+    the portfolio's first value.
+
+    Args:
+        portfolio_equity: Portfolio equity Series indexed by datetime.
+        date_start: Start date YYYY-MM-DD passed to ``get_sp500_prices``.
+
+    Returns:
+        Tuple[pd.Series, pd.Series]: ``(aligned_portfolio_equity, normalized_benchmark_equity)``.
+    """
+
+    benchmark_data = get_sp500_prices(date_start)
+    benchmark_equity = pd.Series(
+        data=benchmark_data.values,
+        index=pd.to_datetime(benchmark_data.index),
+        name="benchmark_equity",
+    )
+
+    common_dates = portfolio_equity.index.intersection(benchmark_equity.index)
+    portfolio_equity = portfolio_equity.loc[common_dates]
+    benchmark_equity = benchmark_equity.loc[common_dates]
+
+    benchmark_equity = (
+        benchmark_equity / benchmark_equity.iloc[0] * portfolio_equity.iloc[0]
+    )
+    return portfolio_equity, benchmark_equity
+
+
 class PerformanceMetrics:
     """
     Performance Metrics Computation Module.
