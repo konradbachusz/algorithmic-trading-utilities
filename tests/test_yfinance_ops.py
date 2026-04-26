@@ -32,3 +32,16 @@ class TestGetSp500Prices:
 
         assert isinstance(result, pd.Series)
         assert len(result) == 0
+
+    # yfinance >= 0.2 returns a DataFrame for single-ticker downloads; ensure
+    # the function still returns a Series in that case.
+    def test_coerces_dataframe_to_series(self, mocker):
+        mock_download = mocker.patch("data.yfinance_ops.yfinance.download")
+        mock_close_df = pd.DataFrame({"^GSPC": [100.0, 101.0, 102.0]})
+        mock_download.return_value = {"Close": mock_close_df}
+
+        result = get_sp500_prices("2023-01-01")
+
+        assert isinstance(result, pd.Series)
+        assert len(result) == 3
+        assert list(result.values) == [100.0, 101.0, 102.0]

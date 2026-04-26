@@ -19,13 +19,18 @@ def get_sp500_prices(start_date: str, end_date: str = None) -> pd.Series:
     sp500_symbol = "^GSPC"  # S&P 500 index symbol in yfinance
     if end_date is None:
         end_date = date.today().isoformat()
-    sp500_prices_df = yfinance.download(
+    sp500_prices = yfinance.download(
         tickers=[sp500_symbol],
         start=start_date,
         end=end_date,
         interval="1d",
     )["Close"]
-    return sp500_prices_df
+    # yfinance >= 0.2 returns a DataFrame (multi-index columns) for single-ticker
+    # downloads; older versions returned a Series. Coerce to Series so the
+    # documented return type holds across yfinance versions.
+    if isinstance(sp500_prices, pd.DataFrame):
+        sp500_prices = sp500_prices.iloc[:, 0]
+    return sp500_prices
 
 
 screeners = [
