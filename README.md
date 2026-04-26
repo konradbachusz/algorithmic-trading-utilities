@@ -22,6 +22,7 @@ A comprehensive Python library for algorithmic trading with Alpaca API and Yahoo
 - **Targeted Order Cancellation**: Cancel orders for specific symbols without removing protective stops on other positions
 - **Entry Order Cancellation**: Cancel unfilled market/limit orders while preserving all stop orders
 - **Market Hours Detection**: Check whether the current time is within NYSE regular trading session
+- **Performance Reports**: One-call snapshot + metrics + multi-page PDF performance report with normalized benchmark
 
 ## Installation
 
@@ -252,6 +253,66 @@ snapshot = load_strategy_snapshot(snapshot_path)
 report_data = generate_strategy_report_data(snapshot, include_benchmark=True)
 print(f"Strategy: {report_data['strategy']}")
 print(f"Open positions: {report_data['executive_summary']['open_positions_count']}")
+```
+
+### End-to-End Performance Report
+
+```python
+from pathlib import Path
+from algorithmic_trading_utilities.brokers.alpaca.performance_ops import (
+    generate_performance_report,
+)
+
+# Save a snapshot, compute metrics, render plots, and write a PDF in one call
+snapshot_path, pdf_path, metrics = generate_performance_report(
+    strategy_name="mean_reversion_v1",
+    output_dir=Path("strategy_snapshots"),
+    timeframe="1D",
+    date_start="2025-01-01",
+    include_benchmark=True,
+)
+print(f"Snapshot: {snapshot_path}")
+print(f"PDF report: {pdf_path}")
+print(f"Sharpe: {metrics['sharpe_ratio']}")
+```
+
+### Building Performance Plots and PDFs
+
+```python
+from algorithmic_trading_utilities.common.portfolio_ops import (
+    PerformanceMetrics,
+    fetch_normalized_benchmark,
+)
+from algorithmic_trading_utilities.common.viz_ops import (
+    PerformanceViz,
+    build_performance_figures,
+)
+from algorithmic_trading_utilities.common.report_ops import write_performance_pdf
+from algorithmic_trading_utilities.brokers.alpaca.performance_ops import (
+    get_portfolio_equity_series,
+)
+
+# Get portfolio equity as a date-indexed Series and align an S&P 500 benchmark
+portfolio_equity = get_portfolio_equity_series()
+portfolio_equity, benchmark_equity = fetch_normalized_benchmark(
+    portfolio_equity, "2025-01-01"
+)
+
+pm = PerformanceMetrics(portfolio_equity, benchmark_equity)
+metrics = pm.calculate_all()
+
+# Build all plots; benchmark line is hidden on dollar-scale plots by default
+viz = PerformanceViz(pm=pm, benchmark_equity=benchmark_equity)
+figs = build_performance_figures(viz, show=False)
+
+# Write a multi-page PDF: cover page (title + metrics) + one figure per page
+write_performance_pdf(
+    pdf_path="report.pdf",
+    title="Strategy - Performance Report",
+    metrics=metrics,
+    figs=figs,
+    period_text=f"Period: {portfolio_equity.index.min().date()} to {portfolio_equity.index.max().date()}",
+)
 ```
 
 ### Position Sizing
@@ -506,7 +567,7 @@ algorithmic_trading_utilities/
 │       ├── performance_ops.py # Strategy snapshot export
 │       └── positions.py     # Position management
 ├── common/
-│   ├── portfolio_ops.py     # Portfolio analytics
+│   ├── portfolio_ops.py     # Portfolio analytics + benchmark alignment
 │   ├── portfolio_constraints.py # Sector/exposure risk checks
 │   ├── position_sizing.py   # ATR-based position sizing
 │   ├── trailing_stop_config.py # Adaptive trailing stops
@@ -515,7 +576,8 @@ algorithmic_trading_utilities/
 │   ├── news_ops.py          # News scraping utilities
 │   ├── sentiment_ops.py     # Sentiment analysis with AI
 │   ├── email_ops.py         # Email notifications
-│   ├── viz_ops.py           # Visualization utilities
+│   ├── viz_ops.py           # Visualization + figure orchestration
+│   ├── report_ops.py        # Multi-page PDF performance reports
 │   └── config.py            # Configuration and API setup
 └── tests/                   # Comprehensive test suite
 ```
@@ -553,6 +615,10 @@ algorithmic_trading_utilities/
 - `calculate_benchmark_metrics()` – Returns benchmark metrics (alpha=0, beta=1 if benchmark provided)
 - `report()` – Prints a formatted comparison of strategy vs benchmark metrics
 
+**Benchmark Alignment:**
+
+- `fetch_normalized_benchmark(portfolio_equity, date_start)` – Fetches S&P 500, intersects dates with the portfolio, and rescales the benchmark so its first value equals the portfolio's first value
+
 ### Order Management (`brokers.alpaca.orders`)
 
 **Order Placement:**
@@ -583,6 +649,8 @@ algorithmic_trading_utilities/
 - `generate_strategy_report_data(snapshot, ...)` - Compute structured report aggregates from a snapshot
 - `normalize_snapshot(snapshot)` - Normalize raw snapshot data with data-quality warnings
 - `load_strategy_snapshot(path)` - Load a saved snapshot JSON file
+- `get_portfolio_equity_series()` - Convert Alpaca portfolio history to a date-indexed `pd.Series`
+- `generate_performance_report(strategy_name, ...)` - End-to-end: snapshot JSON + metrics + multi-page PDF report
 
 ### Position Sizing (`common.position_sizing`)
 
@@ -659,6 +727,12 @@ algorithmic_trading_utilities/
 - `plot_time_series(df)` - General time series plotting
 - `compare_portfolio_and_benchmark(df, title)` - Portfolio vs benchmark charts
 - `plot_portfolio(df)` - Portfolio-specific plotting (handles Series/DataFrame)
+- `PerformanceViz(pm, benchmark_equity=...)` - Per-plot rendering for a `PerformanceMetrics` instance
+- `build_performance_figures(viz, show=False, mask_benchmark_on=("cumulative_returns", "equity_curve"))` - Build all performance figures in one call; benchmark line is hidden on dollar-scale plots by default
+
+### Performance Reports (`common.report_ops`)
+
+- `write_performance_pdf(pdf_path, title, metrics, figs, period_text="")` - Write a multi-page PDF with a cover page (title + monospace metrics block) followed by one figure per page
 
 ### Email Notifications (`common.email_ops`)
 
@@ -770,8 +844,9 @@ pytest tests/ -v -s
 - `test_email_ops.py` - Email notification system
 - `test_account.py` - Alpaca account and balances
 - `test_activities.py` - Alpaca account activities
-- `test_performance_ops.py` - Strategy snapshot export
+- `test_performance_ops.py` - Strategy snapshot export, equity-series helper, end-to-end PDF orchestration
 - `test_reporting.py` - Strategy report generation and rendering
+- `test_report_ops.py` - Multi-page PDF performance report writer
 - `test_cancel_orders_targeted.py` - Targeted order cancellation
 - `test_portfolio_constraints.py` - Sector and gross exposure constraints
 - `test_position_sizing.py` - ATR-based position sizing

@@ -33,6 +33,13 @@ except ImportError:  # pragma: no cover
     from algorithmic_trading_utilities.brokers.alpaca.activities import get_activities
     from algorithmic_trading_utilities.brokers.alpaca.account import get_balances
 
+try:
+    from brokers.alpaca.alpaca_ops import get_portfolio_history
+except ImportError:  # pragma: no cover
+    from algorithmic_trading_utilities.brokers.alpaca.alpaca_ops import (
+        get_portfolio_history,
+    )
+
 
 def _to_serializable(value: Any, _seen: Optional[set] = None) -> Any:
     """Convert common Alpaca SDK objects into JSON-serializable structures.
@@ -794,3 +801,111 @@ def generate_strategy_report(
         )
 
     return output_path
+
+
+def get_portfolio_equity_series():
+    """Return Alpaca portfolio equity history as a ``pd.Series``.
+
+    Wraps :func:`brokers.alpaca.alpaca_ops.get_portfolio_history` and converts
+    the parallel ``equity``/``timestamp`` arrays into a date-indexed Series.
+
+    Returns:
+        pandas.Series: Equity values indexed by datetime, named ``"portfolio_equity"``.
+    """
+
+    import pandas as pd
+
+    history = get_portfolio_history()
+    return pd.Series(
+        data=history.equity,
+        index=pd.to_datetime(history.timestamp, unit="s"),
+        name="portfolio_equity",
+    )
+
+
+def generate_performance_report(
+    strategy_name: str,
+    output_dir: Path = Path("strategy_snapshots"),
+    timeframe: str = "1D",
+    date_start: str = "1970-01-01",
+    date_end: Optional[str] = None,
+    include_benchmark: bool = True,
+    show_plots: bool = False,
+):
+    """End-to-end performance reporting: snapshot JSON + metrics + PDF.
+
+    Saves a strategy snapshot, builds a normalised portfolio/benchmark series,
+    computes metrics, generates plots (with the benchmark line hidden on the
+    dollar-scale plots) and writes a multi-page PDF report next to the snapshot.
+
+    Args:
+        strategy_name: Used in the snapshot/PDF filename.
+        output_dir: Directory for snapshot JSON and PDF report.
+        timeframe: Portfolio history timeframe for the snapshot (e.g. "1D").
+        date_start: Start date YYYY-MM-DD for snapshot, benchmark and equity alignment.
+        date_end: Optional end date YYYY-MM-DD for snapshot equity.
+        include_benchmark: Fetch and align an S&P 500 benchmark series.
+        show_plots: Display plots interactively in addition to the PDF.
+
+    Returns:
+        Tuple[Path, Path, dict]: ``(snapshot_path, pdf_path, metrics)``.
+    """
+
+    try:
+        from common.portfolio_ops import (
+            PerformanceMetrics,
+            fetch_normalized_benchmark,
+        )
+        from common.viz_ops import PerformanceViz, build_performance_figures
+        from common.report_ops import write_performance_pdf
+    except ImportError:  # pragma: no cover
+        from algorithmic_trading_utilities.common.portfolio_ops import (
+            PerformanceMetrics,
+            fetch_normalized_benchmark,
+        )
+        from algorithmic_trading_utilities.common.viz_ops import (
+            PerformanceViz,
+            build_performance_figures,
+        )
+        from algorithmic_trading_utilities.common.report_ops import (
+            write_performance_pdf,
+        )
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    snapshot_path = save_strategy_snapshot(
+        strategy_name=strategy_name,
+        output_dir=output_dir,
+        timeframe=timeframe,
+        date_start=date_start,
+        date_end=date_end,
+    )
+
+    portfolio_equity = get_portfolio_equity_series()
+    benchmark_equity = None
+    if include_benchmark:
+        portfolio_equity, benchmark_equity = fetch_normalized_benchmark(
+            portfolio_equity, date_start
+        )
+
+    pm = PerformanceMetrics(portfolio_equity, benchmark_equity)
+    metrics = pm.calculate_all()
+
+    viz = PerformanceViz(pm=pm, benchmark_equity=benchmark_equity)
+    figs = build_performance_figures(viz, show=show_plots)
+
+    pdf_path = snapshot_path.with_name(snapshot_path.stem + "_report.pdf")
+    period_text = (
+        f"Period: {portfolio_equity.index.min().date()} "
+        f"to {portfolio_equity.index.max().date()}"
+    )
+    write_performance_pdf(
+        pdf_path=pdf_path,
+        title=f"{strategy_name.capitalize()} Strategy - Performance Report",
+        metrics=metrics,
+        figs=figs,
+        period_text=period_text,
+    )
+
+    return snapshot_path, pdf_path, metrics

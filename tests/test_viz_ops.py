@@ -4,7 +4,10 @@ matplotlib.use("Agg")  # Use non-interactive backend for testing
 import numpy as np
 import pandas as pd
 from algorithmic_trading_utilities.common.portfolio_ops import PerformanceMetrics
-from algorithmic_trading_utilities.common.viz_ops import PerformanceViz
+from algorithmic_trading_utilities.common.viz_ops import (
+    PerformanceViz,
+    build_performance_figures,
+)
 
 
 class TestPerformanceViz:
@@ -146,3 +149,59 @@ class TestPerformanceViz:
         figs = viz.create_all_plots(show=False)
         assert isinstance(figs, list)
         assert all(f is not None for f in figs)
+
+
+class TestBuildPerformanceFigures:
+    def test_returns_list_of_figures(self, sample_data):
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        figs = build_performance_figures(viz, show=False)
+        assert isinstance(figs, list)
+        assert len(figs) > 0
+        assert all(f is not None for f in figs)
+
+    def test_default_masking_drops_benchmark_line_on_dollar_plots(self, sample_data):
+        """By default the benchmark is hidden on cumulative-returns and equity-curve plots."""
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        figs = build_performance_figures(viz, show=False)
+
+        # Order matches build_performance_figures: cumulative_returns, equity_curve, ...
+        cumulative_fig = figs[0]
+        equity_fig = figs[1]
+
+        # Each masked plot should have only the portfolio line, not the benchmark.
+        assert len(cumulative_fig.axes[0].lines) == 1 + 1  # portfolio + zero ref line
+        assert len(equity_fig.axes[0].lines) == 1
+
+    def test_restores_benchmark_after_masked_plots(self, sample_data):
+        """``viz.benchmark`` is restored to its original value after each masked call."""
+        pm, _, benchmark = sample_data
+        viz = PerformanceViz(pm=pm)
+        original_benchmark_id = id(viz.benchmark)
+        build_performance_figures(viz, show=False)
+        assert id(viz.benchmark) == original_benchmark_id
+        assert viz.benchmark is not None
+
+    def test_no_masking_keeps_benchmark_on_all_plots(self, sample_data):
+        """With ``mask_benchmark_on=()`` the benchmark line appears on every applicable plot."""
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        figs = build_performance_figures(viz, show=False, mask_benchmark_on=())
+
+        cumulative_fig = figs[0]
+        equity_fig = figs[1]
+        # Now both portfolio and benchmark lines should be present
+        assert len(cumulative_fig.axes[0].lines) >= 2
+        assert len(equity_fig.axes[0].lines) >= 2
+
+    def test_skips_alpha_beta_when_in_mask_set(self, sample_data):
+        """Alpha/beta plots are skipped entirely if their name is in ``mask_benchmark_on``."""
+        pm, _, _ = sample_data
+        viz = PerformanceViz(pm=pm)
+        figs_with = build_performance_figures(viz, show=False, mask_benchmark_on=())
+        figs_without = build_performance_figures(
+            viz, show=False, mask_benchmark_on=("rolling_alpha_beta",)
+        )
+        # Without alpha/beta we should have 2 fewer figures
+        assert len(figs_without) == len(figs_with) - 2
