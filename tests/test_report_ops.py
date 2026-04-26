@@ -38,9 +38,7 @@ class TestWritePerformancePdf:
         """Cover page renders even with no metrics and no period text."""
         fig, _ = plt.subplots()
         out = tmp_path / "empty.pdf"
-        write_performance_pdf(
-            pdf_path=out, title="Empty", metrics={}, figs=[fig]
-        )
+        write_performance_pdf(pdf_path=out, title="Empty", metrics={}, figs=[fig])
         assert out.exists()
         assert out.stat().st_size > 0
 

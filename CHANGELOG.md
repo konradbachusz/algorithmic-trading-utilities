@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-26
+
+### Added
+- Reusable performance report helpers: `fetch_normalized_benchmark()` aligns and rescales the S&P 500 to a portfolio's start value (`common.portfolio_ops`).
+- Plot orchestration: `build_performance_figures()` builds all `PerformanceViz` plots and hides the benchmark line on dollar-scale plots (cumulative returns, equity curve) where the unit comparison is meaningless (`common.viz_ops`).
+- New module `common.report_ops` with `write_performance_pdf()` — writes a multi-page PDF report (cover page with title, period, and metrics block, plus one figure per page).
+- End-to-end performance reporting: `generate_performance_report()` saves a strategy snapshot, computes metrics, renders plots, and writes a PDF in one call (`brokers.alpaca.performance_ops`).
+- `get_portfolio_equity_series()` — converts Alpaca portfolio history into a date-indexed `pd.Series` (`brokers.alpaca.performance_ops`).
+- Tests for the new helpers (`test_report_ops.py`, plus additions to `test_portfolio_ops.py`, `test_viz_ops.py`, `test_performance_ops.py`).
+
 ## [0.4.0] - 2026-04-05
 
 ### Added

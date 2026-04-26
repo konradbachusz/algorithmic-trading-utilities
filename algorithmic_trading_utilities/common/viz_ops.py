@@ -613,9 +613,7 @@ def build_performance_figures(
             lambda: viz.plot_cumulative_returns_timeseries(show=show),
         )
     )
-    figs.append(
-        _maybe_mask("equity_curve", lambda: viz.plot_equity_curve(show=show))
-    )
+    figs.append(_maybe_mask("equity_curve", lambda: viz.plot_equity_curve(show=show)))
     figs.append(
         _maybe_mask(
             "equity_with_drawdowns",
@@ -623,9 +621,7 @@ def build_performance_figures(
         )
     )
     figs.append(
-        _maybe_mask(
-            "drawdown_series", lambda: viz.plot_drawdown_series(show=show)
-        )
+        _maybe_mask("drawdown_series", lambda: viz.plot_drawdown_series(show=show))
     )
     figs.append(
         _maybe_mask(

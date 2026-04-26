@@ -34,7 +34,7 @@ Required in `.env` (see `.env.example`): `PAPER_KEY`, `PAPER_SECRET` (Alpaca pap
 This is a Python library for algorithmic trading, structured into three domains:
 
 - **`brokers/alpaca/`** - Alpaca API integration: account info, order placement (with retry/backoff), position management, portfolio history, strategy performance snapshots. All broker modules depend on `common/config.py` for the `TradingClient` instance.
-- **`common/`** - Shared utilities: `PerformanceMetrics` class (Sharpe, Sortino, alpha/beta, drawdown, VaR/CVaR), ATR-based position sizing (`position_sizing.py`), portfolio risk constraints (`portfolio_constraints.py`), adaptive trailing stops (`trailing_stop_config.py`), market hours detection (`market_hours.py`), sentiment analysis (DistilRoBERTa via HuggingFace), email notifications, web scraping, visualization.
+- **`common/`** - Shared utilities: `PerformanceMetrics` class (Sharpe, Sortino, alpha/beta, drawdown, VaR/CVaR), ATR-based position sizing (`position_sizing.py`), portfolio risk constraints (`portfolio_constraints.py`), adaptive trailing stops (`trailing_stop_config.py`), market hours detection (`market_hours.py`), sentiment analysis (DistilRoBERTa via HuggingFace), email notifications, web scraping, visualization (`viz_ops.py`), and PDF performance reports (`report_ops.py`).
 - **`data/`** - Market data retrieval from Alpaca (`get_data.py`) and Yahoo Finance (`yfinance_ops.py`).
 
 ### Key patterns
@@ -50,7 +50,9 @@ Follow this pattern when adding new cross-module imports.
 
 **`PerformanceMetrics`** (`common/portfolio_ops.py`) is the central analytics class. It takes portfolio and optional benchmark equity series and provides all risk/return metrics. Tests use a `sample_data` fixture from `conftest.py` that generates deterministic random data (seed 42).
 
-**`performance_ops.py`** (`brokers/alpaca/performance_ops.py`) exports strategy snapshots as JSON and generates Markdown/JSON reports to `strategy_snapshots/`. Key entry points: `save_strategy_snapshot()` for capturing broker state, `generate_strategy_report()` for rendering reports from snapshots. It serializes Alpaca SDK objects by converting `RawData` dicts, enums, and recursive structures to plain types via `_to_serializable()`.
+**`performance_ops.py`** (`brokers/alpaca/performance_ops.py`) exports strategy snapshots as JSON and generates Markdown/JSON reports to `strategy_snapshots/`. Key entry points: `save_strategy_snapshot()` for capturing broker state, `generate_strategy_report()` for rendering reports from snapshots, and `generate_performance_report()` for the full pipeline (snapshot + metrics + multi-page PDF). It serializes Alpaca SDK objects by converting `RawData` dicts, enums, and recursive structures to plain types via `_to_serializable()`.
+
+**Performance reporting helpers** are split across modules so each piece is independently usable: `fetch_normalized_benchmark()` (`common/portfolio_ops.py`) aligns and rescales the S&P 500 to the portfolio's start value; `build_performance_figures()` (`common/viz_ops.py`) renders all `PerformanceViz` plots and hides the benchmark line on dollar-scale plots by temporarily setting `viz.benchmark = None` and restoring it; `write_performance_pdf()` (`common/report_ops.py`) writes a cover page plus one figure per page using `matplotlib.backends.backend_pdf.PdfPages`.
 
 ## Generating Strategy Snapshots
 

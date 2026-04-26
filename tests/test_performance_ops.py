@@ -211,9 +211,7 @@ class TestGeneratePerformanceReport:
             return_value=portfolio,
         )
 
-        fetch_mock = mocker.patch(
-            "common.portfolio_ops.fetch_normalized_benchmark"
-        )
+        fetch_mock = mocker.patch("common.portfolio_ops.fetch_normalized_benchmark")
 
         captured = {}
 
